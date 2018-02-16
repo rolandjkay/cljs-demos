@@ -24,3 +24,13 @@ To compile clojurescript to javascript:
 lein clean
 lein cljsbuild once min
 ```
+
+## Testing
+
+To test in PhantomJS
+
+```
+lein doo once
+```
+
+A video which describes a minimal testing set up: https://lambdaisland.com/episodes/testing-clojurescript

@@ -28,7 +28,7 @@
 
     ;; The handle
     [:circle {:cx (:x position) :cy (:y position) :r "5"
-              :fill (if selected "green" "black")
+              :fill (if selected "red" "black")
               :on-mouse-down #(re-frame.core/dispatch
                                    [ :select-object
                                      :handle id
@@ -38,9 +38,8 @@
   "Render an anchor point"
   [anchor-point selected id]
   (let [{:keys [x y]} anchor-point]
-    (print x y)
     [:g {:key (str "a-" id)}
-      [:polygon {:fill (if selected "green" "black")
+      [:polygon {:fill (if selected "cyan" "black")
                  :points (str (- x 3) "," y " "
                               x "," (+ y 3) " "
                               (+ x 3) "," y " "
@@ -129,13 +128,16 @@
            @selected-object)]
        [:div#add-button
          [:button {:on-click #(re-frame/dispatch [:add-anchor])}
-           "Add anchor"]]]]))
+           "Add anchor"]]
+       [:div#add-button
+         [:button {:on-click #(re-frame/dispatch [:select-delete-anchor-tool])}
+           "Delete anchor"]]]]))
 
 ;; about
 
 (defn about-panel []
   [:div "This is the About Page."]
-   [:div [:a {:href "#/"} "go to Home Page"]])
+  [:div [:a {:href "#/"} "go to Home Page"]])
 
 
 ;; main

@@ -58,3 +58,9 @@
   (fn [db [_]]
     (assoc db :anchor-points (conj (:anchor-points db) {:x 50 :y 50})
               :handle-positions (conj (:handle-positions db) {:x 100 :y 50}))))
+
+
+(re-frame/reg-event-db
+  :select-delete-anchor-tool
+  (fn [db [_]]
+    (assoc db :selected-tool :delete)))
