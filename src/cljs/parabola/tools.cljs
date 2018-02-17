@@ -18,7 +18,7 @@
     (on-mouse-down-on-object [this object-type object-id client-position]
       (re-frame.core/dispatch [:select-object object-type object-id client-position]))
 
-    (on-mouse-down-on-background [this] (println "Delete tool ignoring mouse down on background"))
+    (on-mouse-down-on-background [this] (println "Move tool ignoring mouse down on background"))
     (on-mouse-up-on-object [this object-type object-id client-position] (println "Delete tool ignoring mouse up on object"))
     (on-mouse-up-on-background [this] (println "Delete tool ignoring mouse up on background"))
     (on-mouse-out-of-object [this object-type object-id] (println "Delete tool ignoring mouse out of object"))

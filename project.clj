@@ -1,6 +1,7 @@
 (defproject parabola "0.1.0-SNAPSHOT"
   :dependencies [[org.clojure/clojure "1.9.0"]
                  [org.clojure/clojurescript "1.9.946"]
+                 [proto-repl "0.3.1"]
                  [reagent "0.7.0"]
                  [reagent-utils "0.3.0"]
                  [re-frame "0.10.4"]
