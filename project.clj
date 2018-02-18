@@ -15,13 +15,18 @@
 
   :clean-targets ^{:protect false} ["resources/public/js/compiled" "target"]
 
-  :figwheel {:css-dirs ["resources/public/css"]}
+  :figwheel {:css-dirs ["resources/public/css"]
+             :nrepl-port 7002
+             :nrepl-middleware ["cemerick.piggieback/wrap-cljs-repl"]}
 
   :profiles
   {:dev
-   {:dependencies [[binaryage/devtools "0.9.4"]
+   {:repl-options {:init-ns parabola.repl
+                   :nrepl-middleware [cemerick.piggieback/wrap-cljs-repl]}
+    :dependencies [[binaryage/devtools "0.9.4"]
                    [org.clojure/test.check "0.9.0"]
-                   [lein-doo "0.1.8"]]
+                   [lein-doo "0.1.8"]
+                   [com.cemerick/piggieback "0.2.2"]]
 
     :plugins      [[lein-figwheel "0.5.13"]
                    [lein-doo "0.1.8"]]}}
