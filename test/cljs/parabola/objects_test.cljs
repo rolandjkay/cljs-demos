@@ -35,7 +35,20 @@
                                        [300 300 30 30]]})]
       (is (= (:id props) 0))
       (is (= tag :path))
-      (is (= (:d props) "M100,100 C11,11 20,20 200,200 C22,22 30,30 300,300")))))
+      (is (= (:d props) "M100,100 C11,11 20,20 200,200 C22,22 30,30 300,300"))))
+
+  (testing "path->svg (curve then line)"
+    (let [[tag props] (obj/object->svg
+                         {::d/object-type :path
+                          ::d/id 0
+                          ::d/corners
+                          [
+                           [10  10   0  0 20 20]
+                           [50  10  40 20 50 10]
+                           [90  10  90 10]]})]
+      (is (= (:id props) 0))
+      (is (= tag :path))
+      (is (= (:d props) "M10,10 C20,20 40,20 50,10 C50,10 90,10 90,10")))))
 
 (deftest circle->svg-test
   (testing "circle->svg"

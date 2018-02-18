@@ -2,6 +2,7 @@
   :dependencies [[org.clojure/clojure "1.9.0"]
                  [org.clojure/clojurescript "1.9.946"]
                  [proto-repl "0.3.1"]
+                 [devcards "0.2.1"]
                  [reagent "0.7.0"]
                  [reagent-utils "0.3.0"]
                  [re-frame "0.10.4"]
@@ -47,6 +48,14 @@
                     :preloads             [devtools.preload]
                     :external-config      {:devtools/config {:features-to-install :all}}}}
 
+    {:id "devcards"
+       :source-paths ["src/cljs" "test/cljs"]
+       :figwheel { :devcards true}
+       :compiler { :main       parabola.devcards
+                   :asset-path "js/compiled/devcards_out"
+                   :output-to  "resources/public/js/compiled/devcards.js"
+                   :output-dir "resources/public/js/compiled/devcards_out"
+                   :source-map-timestamp true}}
 
     {:id           "min"
      :source-paths ["src/cljs" "src/cljc"]
