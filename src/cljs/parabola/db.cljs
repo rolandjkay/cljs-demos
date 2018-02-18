@@ -1,9 +1,7 @@
 (ns parabola.db
   (:require [parabola.domain :as d]))
 
-;(load "domain")
-
-(def default-db
+(def default-db-old
   {:name "re-frame"
    :anchor-points  [{:x 25 :y 50}
                     {:x 75 :y 100}
@@ -19,14 +17,15 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def default-db**
+(def default-db
   {
     ::d/objects [
-                              [:path 0
-                                     [
-                                       [25 50, 25 150]
-                                       [75 100, 75 150]
-                                       [150 75, 100 25]]]]
+                 {::d/object-type :path
+                  ::d/id          0
+                  ::d/corners     [
+                                   [25 50, 25 150]
+                                   [75 100, 75 150]
+                                   [150 75, 100 25]]}]
 
     ::d/selected-tool :move
     ::d/move-tool-state ::none})
