@@ -6,7 +6,14 @@
   (:require-macros
    [devcards.core :refer [defcard]]))
 
-(defcard linear-path
+(defcard instructions
+  (sab/html
+    [:h1 "Instructions"
+      [:p "After connecting the proto REPL, we need to execute these commands
+           to connect to the figwheel repl."]
+      [:pre "(use 'figwheel-sidecar.repl-api)\n(cljs-repl)"]]))
+
+(defcard basic-path
   (sab/html
     [:h1 "Path test"
      [:p "Here is a linear path between points"]
@@ -52,3 +59,33 @@
       [:a {:href "https://codepen.io/anthonydugois/pen/mewdyZ"}
         "codepen"]
       " is very useful for testing SVG paths"]]))
+
+(defcard visualize-anchors
+  (sab/html
+    [:h1 "Visualize anchors test"
+     [:p "Here we are the render function to visualize the first and last anchors"]
+
+     [:svg {:width "200" :height "200"}
+       (object->svg {::d/object-type :path
+                     ::d/id 0
+                     ::d/display-anchors [0 2]
+                     ::d/corners
+                     [
+                       [10  10   0  0 20 20]
+                       [50  10  40 20 50 10]
+                       [90  10  90 10]]})]]))
+
+(defcard visualize-handles
+  (sab/html
+    [:h1 "Visualize handles test"
+     [:p "Here we are the render function to visualize the first and last anchors"]
+
+     [:svg {:width "200" :height "200"}
+       (object->svg {::d/object-type :path
+                     ::d/id 0
+                     ::d/display-handles [1]
+                     ::d/corners
+                     [
+                       [10  10   0  0 20 20]
+                       [50  10  40 20 50 10]
+                       [90  10  90 10]]})]]))

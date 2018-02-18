@@ -28,10 +28,17 @@
                       :asymmetric-corner ::asymmetric-corner))
 (s/def ::corners (s/coll-of ::corner :kind vector?))
 
+;; Vectors of the anchors/handles to visualize
+;; - These contain a list of IDs which the render function is expected to
+;;   display.
+(s/def ::display-anchors (s/coll-of int? :kind vector?))
+(s/def ::display-handles (s/coll-of int? :kind vector?))
+
 ;(s/def ::path (s/cat :obj-type #{:path}
 ;                     :id int?
 ;                     :corners (s/coll-of ::corner :kind vector?)))
-(s/def ::path (s/keys :req [::object-type ::id ::corners]))
+(s/def ::path (s/keys :req [::object-type ::id ::corners]
+                      :opt [::display-anchors ::display-handles]))
 
 ;;; CIRCLE ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -95,19 +95,39 @@
       [:asymmetric-corner :asymmetric-corner]
       (str/join " " [(position->svg [sh2x sh2y] "C") (position->svg [eh1x eh1y]) (position->svg [eax eay])]))))
 
+(defn- anchor->svg
+  "Render an anchor"
+  {:pre [(s/valid? ::d/anchor anchor)]}
+  [[x y _ _ _ _ :as anchor] id]
+  [:g {:key (str "a-" id)}
+    [:polygon {:fill "black"
+               :points (str (- x 3) "," y " "
+                            x "," (+ y 3) " "
+                            (+ x 3) "," y " "
+                            x "," (- y 3) " "
+                            (- x 3) "," y)}]])
 
 (defmethod object->svg :path [path] {:pre [(s/valid? ::d/path path)]}
-  [:path {:id (::d/id path)
-          :fill "none"
-          :stroke "black"
-          :d (str/join " "
-              (concat
-                ; Move-to command to go to start of the path
-                [(position->svg (path-first-anchor path) "M")]
-                ; Map each pair of corners to a curve-to command
-                (map
-                  #(corner-pair->svg %)
-                  (u/pairs (::d/corners path)))))}])
+  [:g {:id (::d/id path)}
+    [:path {:fill "none"
+            :stroke "black"
+            :d (str/join " "
+                (concat
+                  ; Move-to command to go to start of the path
+                  [(position->svg (path-first-anchor path) "M")]
+                  ; Map each pair of corners to a curve-to command
+                  (map
+                    #(corner-pair->svg %)
+                    (u/pairs (::d/corners path)))))}]
+    ; If we were asked to visualize any handles then draw diamonds for them
+    ; - for on nil is safe.
+    ;(for [anchor-index (::d/display-anchors path)]
+    ;  (anchor->svg)]])
+    (keep-indexed
+      (fn [i corner]
+        (if (some #(= i %) (::d/display-anchors path))
+          (anchor->svg corner (str (::d/id path) "-" i))))
+      (::d/corners path))])
 
 ;;; object->svg [CIRCLE] ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
