@@ -7,67 +7,109 @@
             [clojure.spec.alpha :as s]
             [clojure.string :as str]))
 
-(defn position->svg
-  "Render a position to an SVG string; [1 2]-> \"1,2\""
-  [position]
-  {:pre [(s/valid? ::d/position position)]}
-  (str (position 0) "," (position 1)))
+(defn- position->svg
+  "Render a position to an SVG string; [1 2]-> \"1,2\"
 
-;; Do we really need this for dispatch???
-(defn object-type [obj]
-  (let [parsed (s/conform ::d/object obj)]
-    (if (= parsed ::s/invalid)
-        (throw (ex-info "Invalid object" (s/explain-data ::d/object obj)))
-        (::d/object-type parsed))))
+  Optionally takes an SVG command prefix; e.g.
 
-;(println (object-type  {::d/object-type :path ::d/id 0 ::d/corners []}))
+  (position->svg [1 2] \"M\")
+  ;; \"M1,2\"
 
-(defmulti object->svg object-type) ;(fn [obj (first obj)]))
+  "
+  ([position]
+   (position->svg position ""))
+  ([position cmd]
+   {:pre [(s/valid? ::d/position position)
+          (string? cmd)]}
+   (str cmd (position 0) "," (position 1))))
 
-;;; PATH ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; This relies on the fact that the first two numbers in the first corner
+;; is the anchor position, regardless of the corner type.
+(defn- path-first-anchor
+  "Map a path to its first point; useful for the initial move command"
+  [path]
+  {:pre [(s/valid? ::d/path path)]
+   :post [(s/valid? ::d/position %)]}
+  (let [ [[x y] & rest] (::d/corners path)]
+    [x y]))
+
+(assert (= (path-first-anchor {::d/object-type :path
+                               ::d/id          0
+                               ::d/corners     [[100 101 202 203] [303 404]]})
+           [100 101]))
+
+;;; object->svg multi-method ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn corner-pair->svg
+(defmulti
+  object->svg
+  ; Dispatch function
+  (fn
+    [obj]
+    {:pre [(s/valid? ::d/object obj)]}
+    (::d/object-type obj)))
+
+;;; object->svg [PATH] ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn- corner-pair->svg
   "Render a pair of corners to an SVG path line segment"
   [[start end]]
   {:pre [(s/valid? ::d/corner start)
          (s/valid? ::d/corner end)]}
-  (let [[start-type start*] (s/conform ::d/corner start)
-        [end-type   end*]   (s/conform ::d/corner end)]
+  ; sax  -> start anchor X
+  ; sh1x -> start handle one X
+  (let [[sax say sh1x sh1y sh2x sh2y] start
+        [eax eay eh1x eh1y eh2x eh2y] end
+        [start-type _]                (s/conform ::d/corner start)
+        [end-type _]                  (s/conform ::d/corner end)]
+
     (case [start-type end-type]
-      [:sharp-corner      :sharp-corner] (str "L" (position->svg end) " ")
-      [:sharp-corner      :symmetric-corner] "C"
-      [:sharp-corner      :asymmetric-corner] "C"
-      [:symmetric-corner  :sharp-corner] "S"
-      [:symmetric-corner  :symmetric-corner] "S"
-      [:symmetric-corner  :asymmetric-corner] "S"
-      [:asymmetric-corner :sharp-corner] "C"
-      [:asymmetric-corner :symmetric-corner] "C"
-      [:asymmetric-corner :asymmetric-corner] "C")))
+      ; Two sharp corners are linked by a line
+      [:sharp-corner      :sharp-corner]
+      (position->svg end "L")
+
+      ; curve-to with the first handle at the anchor
+      [:sharp-corner      :symmetric-corner]
+      (str/join " " [(position->svg start "C") (position->svg [eh1x eh1y]) (position->svg [eax eay])])
+
+      ; Same as above (XXX could we not copy-paste?))
+      [:sharp-corner      :asymmetric-corner]
+      (str/join " " [(position->svg start "C") (position->svg [eh1x eh1y]) (position->svg [eax eay])])
+
+      ; symmetric curve-to with the handle at the last anchor
+      [:symmetric-corner  :sharp-corner]
+      (str/join " " [(position->svg end "S") (position->svg end)])
+
+      [:symmetric-corner  :symmetric-corner]
+      (str/join " " [(position->svg [eh1x eh1y] "S") (position->svg [eax eay])])
+
+      [:symmetric-corner  :asymmetric-corner]
+      (str/join " " [(position->svg [eh1x eh1y] "S") (position->svg [eax eay])])
+
+      [:asymmetric-corner :sharp-corner]
+      (str/join " " [(position->svg [sh1x sh1y] "C") (position->svg [eax eay]) (position->svg [eax eay])])
+
+      [:asymmetric-corner :symmetric-corner]
+      (str/join " " [(position->svg [sh2x sh2y] "C") (position->svg [eh1x eh1y]) (position->svg [eax eay])])
+
+      [:asymmetric-corner :asymmetric-corner]
+      (str/join " " [(position->svg [sh2x sh2y] "C") (position->svg [eh1x eh1y]) (position->svg [eax eay])]))))
+
 
 (defmethod object->svg :path [path] {:pre [(s/valid? ::d/path path)]}
-  (println)
-
-
   [:path {:id (::d/id path)
           :fill "none"
           :stroke "black"
-          :d (str/trim
-               (reduce
-                 #(str %1 (corner-pair->svg %2))
-                 ; Initial value of reduce is the move-to command
-                 ; XXX This is ridiculous
-                 (some-> path
-                         ::d/corners
-                         first                             ; Get first corner
-                         ((partial take 2))                ; Get position
-                         ((partial into (vector)))
-                         position->svg
-                         (#(str "M" % " ")))
-                 ; Reduce over pairs of corners
-                 (u/pairs (::d/corners path))))}])
+          :d (str/join " "
+              (concat
+                ; Move-to command to go to start of the path
+                [(position->svg (path-first-anchor path) "M")]
+                ; Map each pair of corners to a curve-to command
+                (map
+                  #(corner-pair->svg %)
+                  (u/pairs (::d/corners path)))))}])
 
-
+;;; object->svg [CIRCLE] ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defmethod object->svg :circle [obj]
   (let [parsed (s/conform ::d/circle obj)]
