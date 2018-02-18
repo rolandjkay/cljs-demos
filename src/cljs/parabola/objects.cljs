@@ -95,10 +95,10 @@
       [:asymmetric-corner :asymmetric-corner]
       (str/join " " [(position->svg [sh2x sh2y] "C") (position->svg [eh1x eh1y]) (position->svg [eax eay])]))))
 
-(defn- anchor->svg
+(defn- corner-anchor->svg
   "Render an anchor"
-  {:pre [(s/valid? ::d/anchor anchor)]}
-  [[x y _ _ _ _ :as anchor] id]
+  {:pre [(s/valid? ::d/corner corner)]}
+  [[x y _ _ _ _ :as corner] id]
   [:g {:key (str "a-" id)}
     [:polygon {:fill "black"
                :points (str (- x 3) "," y " "
@@ -106,6 +106,34 @@
                             (+ x 3) "," y " "
                             x "," (- y 3) " "
                             (- x 3) "," y)}]])
+
+(defn- handle->svg
+  "Render a single handle"
+  [anchor-position handle-position id]
+  {:pre [(s/valid? ::d/position anchor-position)
+         (s/valid? ::d/position handle-position)]}
+
+  [:g {:key (str "h-" id)}
+    ;; Dashed line from path to handle
+    [:path {:fill "none"
+            :stroke "black"
+            :stroke-dasharray "5,5"
+            :d (str/join " "
+                 [(position->svg anchor-position "M")
+                  (position->svg handle-position "L")])}]
+
+    ;; The handle
+    [:circle {:cx (handle-position 0) :cy (handle-position 1) :r "5"
+              :fill "black"}]])
+
+
+(defn- corner-handles->svg
+  "Render the handles of an anchor"
+  {:pre [(s/valid? ::d/corner corner)]}
+  [[x y h1x h1y h2x h2y :as corner] id]
+  (list
+    (if h1x (handle->svg [x y] [h1x h1y] (str id "-1")) nil)
+    (if h2x (handle->svg [x y] [h2x h2y] (str id "-2")) nil)))
 
 (defmethod object->svg :path [path] {:pre [(s/valid? ::d/path path)]}
   [:g {:id (::d/id path)}
@@ -119,14 +147,20 @@
                   (map
                     #(corner-pair->svg %)
                     (u/pairs (::d/corners path)))))}]
-    ; If we were asked to visualize any handles then draw diamonds for them
-    ; - for on nil is safe.
-    ;(for [anchor-index (::d/display-anchors path)]
-    ;  (anchor->svg)]])
+    ; If we were asked to visualize any anchors then draw diamonds for them
+    ; XXX This is a patten that we could refactor
     (keep-indexed
       (fn [i corner]
+        ; if 'i' is in 'display-anchors'
         (if (some #(= i %) (::d/display-anchors path))
-          (anchor->svg corner (str (::d/id path) "-" i))))
+          (corner-anchor->svg corner (str (::d/id path) "-" i))))
+      (::d/corners path))
+
+    ; Same for anchors
+    (keep-indexed
+      (fn [i corner]
+        (if (some #(= i %) (::d/display-handles path))
+          (corner-handles->svg corner (str (::d/id path) "-" i))))
       (::d/corners path))])
 
 ;;; object->svg [CIRCLE] ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
