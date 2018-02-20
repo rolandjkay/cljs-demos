@@ -13,7 +13,7 @@
 (defn- deg->rad
   "Convert an angle in degrees to radians"
   [t]
-  (* 3.142 (/ t 180)))
+  (* (.-PI js/Math) (/ t 180)))
 
 (defn- polar->cartesian
   "Convert a polar coordinate to a castesian one"
@@ -36,12 +36,15 @@
   ;; \"M1,2\"
 
   "
-  ([position]
-   (position->svg position ""))
+  ([position] (position->svg position ""))
   ([position cmd]
    {:pre [(s/valid? ::d/position position)
           (string? cmd)]}
-   (str cmd (position 0) "," (position 1))))
+  ; (let [x10 (partial * 10)
+  ;       x10% (partial * 0.1)
+  ;       round (fn [p] (-> p x10 js/Math.round x10%))
+   (str cmd (.toFixed (position 0) 1)
+        "," (.toFixed (position 1) 1))))
 
 ;; This relies on the fact that the first two numbers in the first corner
 ;; is the anchor position, regardless of the corner type.

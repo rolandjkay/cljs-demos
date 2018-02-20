@@ -24,9 +24,9 @@
                   ::d/id          0
                   ::d/vertices
                   [
-                   {::vertex-type :handle-after ::position [25 50] ::angle 90 ::length 100}
-                   {::vertex-type :symmetric ::position [75 100] ::angle 90 ::length 50}
-                   {::vertex-type :handle-before ::position [150 75] ::angle 210 ::length 56}]}]
+                   {::d/vertex-type :handle-after ::d/position [25 50] ::d/after-angle 90 ::d/after-length 100}
+                   {::d/vertex-type :symmetric ::d/position [75 100] ::d/angle 90 ::d/length 50}
+                   {::d/vertex-type :handle-before ::d/position [150 75] ::d/before-angle 210 ::d/before-length 56}]}]
 
     ::d/selected-tool :move
     ::d/move-tool-state ::none})
