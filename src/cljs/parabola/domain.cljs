@@ -3,30 +3,38 @@
 (ns parabola.domain
   (:require [clojure.spec.alpha :as s]))
 
-(s/def ::position (s/cat :x int? :y int?))
+(s/def ::position (s/cat :x number? :y number?))
 (s/def ::id int?)
 
 ;;; PATH ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; There are three different point types for a path: sharp corner (no handles),
-;; symmetric corner (one handle; other is mirror image); asymmetric corner
-;; (two handles).
 
-(s/def ::sharp-corner (s/cat :anchor ::position))
-(s/def ::symmetric-corner  (s/cat :anchor ::position :handle ::position))
-(s/def ::asymmetric-corner (s/cat :anchor ::position :handle-one ::position :handle-two ::position))
+;; Difference types of vertex:
+;; no-handles
+;; handle-before                                         angle, length
+;; handle-after                                          angle, length
+;; two-handles-symmetric     (lengths and angles equal)  angle, length
+;; two-handle-semi-symmetric (angles equal)              angle, length1, length2
+;; two-handle-asymmetric                                 angle1, angle2, len x 2
+(s/def ::vertex-no-handles (s/keys :req [::vertex-type ::position]))
+(s/def ::vertex-with-handle-before (s/keys :req [::vertex-type ::position ::before-angle ::before-length]))
+(s/def ::vertex-with-handle-after (s/keys :req [::vertex-type ::position ::after-angle ::after-length]))
+(s/def ::vertex-symmetric (s/keys :req [::vertex-type ::position ::angle ::length]))
+(s/def ::vertex-semi-symmetric (s/keys :req [::vertex-type ::position ::after-angle ::before-length ::after-length]))
+(s/def ::vertex-asymmetric (s/keys :req [::vertex-type ::position ::before-angle ::after-angle ::before-length ::after-length]))
 
-;; s/or is, effectively, a pattern match. It will return a vector in which the
-;; first element gives the label of the spec that matches; e.g
-;;
-;; [:asymmetric-corner
-;;  {:handle-two {:y 300, :x 300},
-;;   :handle-one {:y 200, :x 200},
-;;   :anchor {:y 100, :x 100})
-(s/def ::corner (s/or :sharp-corner ::sharp-corner
-                      :symmetric-corner ::symmetric-corner
-                      :asymmetric-corner ::asymmetric-corner))
-(s/def ::corners (s/coll-of ::corner :kind vector?))
+(s/def ::vertex-type keyword?)
+(defmulti vertex-type ::vertex-type)
+(defmethod vertex-type :no-handles [_] ::vertex-no-handles)
+(defmethod vertex-type :handle-before [_] ::vertex-with-handle-before)
+(defmethod vertex-type :handle-after [_] ::vertex-with-handle-after)
+(defmethod vertex-type :symmetric [_] ::vertex-symmetric)
+(defmethod vertex-type :semi-symmetric [_] ::vertex-semi-symmetric)
+(defmethod vertex-type :asymmetric [_] ::vertex-asymmetric)
+
+(s/def ::vertex (s/multi-spec vertex-type ::vertex-type))
+
+(s/def ::vertices (s/coll-of ::vertex :kind vector?))
 
 ;; Vectors of the anchors/handles to visualize
 ;; - These contain a list of IDs which the render function is expected to
@@ -37,7 +45,7 @@
 ;(s/def ::path (s/cat :obj-type #{:path}
 ;                     :id int?
 ;                     :corners (s/coll-of ::corner :kind vector?)))
-(s/def ::path (s/keys :req [::object-type ::id ::corners]
+(s/def ::path (s/keys :req [::object-type ::id ::vertices]
                       :opt [::display-anchors ::display-handles]))
 
 ;;; CIRCLE ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

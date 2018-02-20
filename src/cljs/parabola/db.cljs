@@ -22,10 +22,11 @@
     ::d/objects [
                  {::d/object-type :path
                   ::d/id          0
-                  ::d/corners     [
-                                   [25 50, 25 150]
-                                   [75 100, 75 150]
-                                   [150 75, 100 25]]}]
+                  ::d/vertices
+                  [
+                   {::vertex-type :handle-after ::position [25 50] ::angle 90 ::length 100}
+                   {::vertex-type :symmetric ::position [75 100] ::angle 90 ::length 50}
+                   {::vertex-type :handle-before ::position [150 75] ::angle 210 ::length 56}]}]
 
     ::d/selected-tool :move
     ::d/move-tool-state ::none})
