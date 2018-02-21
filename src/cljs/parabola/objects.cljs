@@ -3,7 +3,7 @@
 ;;
 (ns parabola.objects
   (:require [parabola.domain :as d]
-            [parabola.utils :as u]
+            [parabola.utils :refer [value-in-collection? pairs]]
             [clojure.spec.alpha :as s]
             [clojure.string :as str]
             [adzerk.cljs-console :as log :include-macros true]))
@@ -112,11 +112,13 @@
 
 (defn- vertex-anchor->svg
   "Render an anchor"
-  {:pre [(s/valid? ::d/vertex vertex)]}
-  [vertex id]
+  [vertex id selected]
+  {:pre [(s/valid? ::d/vertex vertex)
+         (s/valid? boolean? selected)]}
+
   (let [[x y] (::d/position vertex)]
-    [:g {:key (str "a-" id)}
-      [:polygon {:fill "black"
+    [:g {:key (str "a-" id) :id (str "a-" id)}
+      [:polygon {:fill  (if selected "green" "black")
                  :points (str (- x 3) "," y " "
                               x "," (+ y 3) " "
                               (+ x 3) "," y " "
@@ -198,7 +200,7 @@
     [[1 :before] [2 :after] [1 :after]] -> #{:before :after}
   "
   {:pre [(s/valid? int? handle-index)
-         (s/valiud? ::d/selected-handles selected-handles)]}
+         (s/valid? ::d/selected-handles selected-handles)]}
   [anchor-index selected-handles]
   (into #{}
     (map second
@@ -215,21 +217,22 @@
                   ; Map each pair of corners to a curve-to command
                   (map
                     #(vertex-pair->svg %)
-                    (u/pairs (::d/vertices path)))))}]
+                    (pairs (::d/vertices path)))))}]
     ; If we were asked to visualize any anchors then draw diamonds for them
     ; XXX This is a patten that we could refactor
     (keep-indexed
       (fn [i vertex]
         ; if 'i' is in 'display-anchors'
-        (if (some #(= i %) (::d/display-anchors path))
-          (vertex-anchor->svg vertex
-                              (str (::d/id path) "-" i))))
+        (if (value-in-collection? i (::d/display-anchors path))
+            (vertex-anchor->svg vertex
+                                (str (::d/id path) "-" i)
+                                (value-in-collection? i (::d/selected-anchors path)))))
       (::d/vertices path))
 
     ; Same for handles
     (keep-indexed
       (fn [i vertex]
-        (if (some #(= i %) (::d/display-handles path))
+        (if (value-in-collection? i (::d/display-handles path))
           (vertex-handles->svg vertex
                                (str (::d/id path) "-" i)
                                (selection-for-anchor i (::d/selected-handles path)))))
