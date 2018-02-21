@@ -125,7 +125,7 @@
 
 (defn- handle->svg
   "Render a single handle"
-  [id anchor-position relative-handle-position]
+  [id selected anchor-position relative-handle-position]
   {:pre [(s/valid? ::d/position anchor-position)
          (s/valid? ::d/position relative-handle-position)]}
   (let [handle-position (pos-add anchor-position relative-handle-position)]
@@ -140,35 +140,69 @@
 
       ;; The handle
       [:circle {:cx (handle-position 0) :cy (handle-position 1) :r "5"
-                :fill "black"}]]))
+                :fill (if selected "green" "black")}]]))
 
 
 (defn- vertex-handles->svg
   "Render the handles of a vertex"
-  {:pre [(s/valid? ::d/vertex vertex)]}
-  [vertex id]
+  {:pre [(s/valid? ::d/vertex vertex)
+         (s/valid? (s/coll-f #{:before :after} :kind set?) selection)]}
+  [vertex id selection]
   (let [position (::d/position vertex)
         type  (::d/vertex-type vertex)]
-        ; Default the handles to be at the anchor positions if missing.
-        ; Try for length/angle first, in case the node is symmetric.
-      ;  before-length (::d/length start (::d/before-length start 0))
-    ;    before-angle (::d/angle start (::d/before-angle start 0))
-  ;      after-length (::d/length start (::d/after-length start 0))
-  ;      after-angle (::d/angle start (::d/after-angle start 0))]
     (case type
       :no-handles nil
-      :handle-before (handle->svg (str id "-" 0) position (polar->cartesian [(- (::d/before-length vertex)) (::d/before-angle vertex)]))
-      :handle-after (handle->svg (str id "-" 1) position (polar->cartesian [(::d/after-length vertex) (::d/after-angle vertex)]))
+      :handle-before
+        (handle->svg (str id "-" 0)
+                     (:before selection)
+                     position
+                     (polar->cartesian [(- (::d/before-length vertex)) (::d/before-angle vertex)]))
+
+      :handle-after
+        (handle->svg (str id "-" 1)
+                     (:after selection)
+                     position
+                     (polar->cartesian [(::d/after-length vertex) (::d/after-angle vertex)]))
+
       :symmetric
         (list
-          (handle->svg (str id "-" 0) position (polar->cartesian [(::d/length vertex) (::d/angle vertex)]))
-          (handle->svg (str id "-" 1) position (polar->cartesian [(- (::d/length vertex)) (::d/angle vertex)])))
+          (handle->svg (str id "-" 0)
+                       (:before selection)
+                       position
+                       (polar->cartesian [(::d/length vertex) (::d/angle vertex)]))
+          (handle->svg (str id "-" 1)
+                       position
+                       (:after selection)
+                       (polar->cartesian [(- (::d/length vertex)) (::d/angle vertex)])))
 
       :asymmetric
         (list
-          (handle->svg (str id "-" 0) position (polar->cartesian [(::d/after-length vertex) (::d/after-angle vertex)]))
-          (handle->svg (str id "-" 1) position (polar->cartesian [(- (::d/before-length vertex)) (::d/before-angle vertex)]))))))
+          (handle->svg (str id "-" 0)
+                       (:before selection)
+                       position
+                       (polar->cartesian [(::d/after-length vertex) (::d/after-angle vertex)]))
+          (handle->svg (str id "-" 1)
+                       (:after selection)
+                       position
+                       (polar->cartesian [(- (::d/before-length vertex)) (::d/before-angle vertex)]))))))
 
+
+(defn- selection-for-anchor
+  "Return which handles are selected for a given anchor.
+
+  Given the vector of selected-handles and an anchor index, return the
+  handles for the given anchor that are selected.
+
+  For example, when anchor-index = 1,
+
+    [[1 :before] [2 :after] [1 :after]] -> #{:before :after}
+  "
+  {:pre [(s/valid? int? handle-index)
+         (s/valiud? ::d/selected-handles selected-handles)]}
+  [anchor-index selected-handles]
+  (into #{}
+    (map second
+         (filter #(= anchor-index (first %)) selected-handles))))
 
 (defmethod object->svg :path [path] {:pre [(s/valid? ::d/path path)]}
   [:g {:id (::d/id path)}
@@ -188,14 +222,17 @@
       (fn [i vertex]
         ; if 'i' is in 'display-anchors'
         (if (some #(= i %) (::d/display-anchors path))
-          (vertex-anchor->svg vertex (str (::d/id path) "-" i))))
+          (vertex-anchor->svg vertex
+                              (str (::d/id path) "-" i))))
       (::d/vertices path))
 
     ; Same for handles
     (keep-indexed
       (fn [i vertex]
         (if (some #(= i %) (::d/display-handles path))
-          (vertex-handles->svg vertex (str (::d/id path) "-" i))))
+          (vertex-handles->svg vertex
+                               (str (::d/id path) "-" i)
+                               (selection-for-anchor i (::d/selected-handles path)))))
       (::d/vertices path))])
 
 ;;; object->svg [CIRCLE] ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

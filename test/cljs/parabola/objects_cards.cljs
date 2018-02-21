@@ -120,6 +120,20 @@
                       {::d/vertex-type :handle-after ::d/position [100 300] ::d/after-angle 180 ::d/after-length 50}
                       {::d/vertex-type :asymmetric ::d/position [150 350] ::d/before-angle -15 ::d/before-length 141 ::d/after-angle 45 ::d/after-length 62}
                       {::d/vertex-type :handle-before ::d/position [300 300] ::d/before-angle 90 ::d/before-length 100}]})]]))
-                      ; [100 300   0   0 100 250]
-                      ; [150 350 250 250 250 400]
-                      ; [300 300 300 400]]})]]))
+
+(defcard select-handles
+  (sab/html
+    [:div
+     [:h1 "Select handles test"]
+     [:p "Here we are the render function to visualize the first and last anchors"]
+
+     [:svg {:width "400" :height "400"}
+       (object->svg {::d/object-type :path
+                     ::d/id 0
+                     ::d/display-handles [0 1 2]
+                     ::d/selected-handles [[0 :after] [1 :before]]
+                     ::d/vertices
+                     [
+                      {::d/vertex-type :handle-after ::d/position [100 300] ::d/after-angle 180 ::d/after-length 50}
+                      {::d/vertex-type :asymmetric ::d/position [150 350] ::d/before-angle -15 ::d/before-length 141 ::d/after-angle 45 ::d/after-length 62}
+                      {::d/vertex-type :handle-before ::d/position [300 300] ::d/before-angle 90 ::d/before-length 100}]})]]))

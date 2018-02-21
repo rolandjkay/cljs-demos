@@ -12,6 +12,14 @@
       [100 100 100] false
       ["100" 100] false)))
 
+
+(deftest handle-selector-test
+  (testing "handle selector"
+    (are [data v] (= (s/valid? ::d/handle-selector data) v)
+      [5 :before] true
+      [0 :after] true
+      [0 0] false)))
+
 ;(deftest corner-test
 ;  (testing "corner spec"
 ;    (is (s/valid? ::d/corner [100 100]))
