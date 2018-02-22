@@ -131,7 +131,7 @@
   {:pre [(s/valid? ::d/position anchor-position)
          (s/valid? ::d/position relative-handle-position)]}
   (let [handle-position (pos-add anchor-position relative-handle-position)]
-    [:g {:key (str "h-" id)}
+    [:g {:key (str id)}
       ;; Dashed line from path to handle
       [:path {:fill "none"
               :stroke "black"
@@ -155,35 +155,35 @@
     (case type
       :no-handles nil
       :handle-before
-        (handle->svg (str id "-" 0)
+        (handle->svg (str id "/" 0)
                      (:before selection)
                      position
                      (polar->cartesian [(- (::d/before-length vertex)) (::d/before-angle vertex)]))
 
       :handle-after
-        (handle->svg (str id "-" 1)
+        (handle->svg (str id "/" 1)
                      (:after selection)
                      position
                      (polar->cartesian [(::d/after-length vertex) (::d/after-angle vertex)]))
 
       :symmetric
         (list
-          (handle->svg (str id "-" 0)
+          (handle->svg (str id "/" 0)
                        (:before selection)
                        position
                        (polar->cartesian [(::d/length vertex) (::d/angle vertex)]))
-          (handle->svg (str id "-" 1)
+          (handle->svg (str id "/" 1)
                        position
                        (:after selection)
                        (polar->cartesian [(- (::d/length vertex)) (::d/angle vertex)])))
 
       :asymmetric
         (list
-          (handle->svg (str id "-" 0)
+          (handle->svg (str id "/" 0)
                        (:before selection)
                        position
                        (polar->cartesian [(::d/after-length vertex) (::d/after-angle vertex)]))
-          (handle->svg (str id "-" 1)
+          (handle->svg (str id "/" 1)
                        (:after selection)
                        position
                        (polar->cartesian [(- (::d/before-length vertex)) (::d/before-angle vertex)]))))))
@@ -225,7 +225,7 @@
         ; if 'i' is in 'display-anchors'
         (if (value-in-collection? i (::d/display-anchors path))
             (vertex-anchor->svg vertex
-                                (str (::d/id path) "-" i)
+                                (str (::d/id path) "/" i)
                                 (value-in-collection? i (::d/selected-anchors path)))))
       (::d/vertices path))
 
@@ -234,7 +234,7 @@
       (fn [i vertex]
         (if (value-in-collection? i (::d/display-handles path))
           (vertex-handles->svg vertex
-                               (str (::d/id path) "-" i)
+                               (str (::d/id path) "/" i)
                                (selection-for-anchor i (::d/selected-handles path)))))
       (::d/vertices path))])
 
