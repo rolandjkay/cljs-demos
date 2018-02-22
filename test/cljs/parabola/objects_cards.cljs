@@ -90,7 +90,6 @@
   (sab/html
     [:div
      [:h1 "Visualize handles test"]
-     [:p "It looks pretty silly on the first point because we have an unused handle that gets rendered"]
      [:svg {:width "200" :height "200"}
        (object->svg {::d/object-type :path
                      ::d/id 0
@@ -109,7 +108,7 @@
   (sab/html
     [:div
      [:h1 "Visualize handles test"]
-     [:p "Here we are the render function to visualize the first and last anchors"]
+     [:p "Here we ask the render function to visualize all handles"]
 
      [:svg {:width "400" :height "400"}
        (object->svg {::d/object-type :path
@@ -125,7 +124,6 @@
   (sab/html
     [:div
      [:h1 "Select handles test"]
-     [:p "Here we are the render function to visualize the first and last anchors"]
 
      [:svg {:width "400" :height "400"}
        (object->svg {::d/object-type :path
@@ -142,7 +140,6 @@
   (sab/html
     [:div
      [:h1 "Select anchors test"]
-     [:p "Here we are the render function to visualize the first and last anchors"]
 
      [:svg {:width "400" :height "400"}
        (object->svg {::d/object-type :path
