@@ -6,6 +6,10 @@
 (s/def ::position (s/cat :x number? :y number?))
 (s/def ::id int?)
 
+;; The IDs are concatonated together as string separated by '/' on the DOM.
+(def dom-id-regex #"^[0-9](/[0-9])*$")
+(s/def ::dom-id (s/and string? #(re-matches dom-id-regex %)))
+
 ;;; PATH ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

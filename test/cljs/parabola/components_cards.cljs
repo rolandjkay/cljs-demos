@@ -104,3 +104,20 @@
               :cx 190
               :cy 190
               :r "5" :stroke "black" :fill "yellow"}]]]]))
+
+
+(defcard make-path-component-test
+  (reagent/as-element
+    [:div
+      [:h1 "Editable SVG component"]
+      [c/make-draggable
+        [c/path-component
+            {::d/object-type :path
+             ::d/id 0
+             ::d/display-anchors [0 1 2]
+        ;     ::d/display-handles [0 1 2]
+             ::d/vertices
+             [
+              {::d/vertex-type :handle-after ::d/position [100 300] ::d/after-angle 180 ::d/after-length 50}
+              {::d/vertex-type :asymmetric ::d/position [150 350] ::d/before-angle -15 ::d/before-length 141 ::d/after-angle 45 ::d/after-length 62}
+              {::d/vertex-type :handle-before ::d/position [300 300] ::d/before-angle 90 ::d/before-length 100}]}]]]))

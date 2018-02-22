@@ -3,13 +3,10 @@
 ;;
 (ns parabola.objects
   (:require [parabola.domain :as d]
-            [parabola.utils :refer [value-in-collection? pairs]]
+            [parabola.utils :refer [value-in-collection? pairs pos-add pos-diff]]
             [clojure.spec.alpha :as s]
             [clojure.string :as str]
             [adzerk.cljs-console :as log :include-macros true]))
-
-(def ^{:private true} pos-diff (partial mapv -))
-(def ^{:private true} pos-add (partial mapv +))
 
 (defn- deg->rad
   "Convert an angle in degrees to radians"
@@ -117,7 +114,7 @@
          (s/valid? boolean? selected)]}
 
   (let [[x y] (::d/position vertex)]
-    [:g {:key (str "a-" id) :id (str "a-" id)}
+    [:g.drag-me {:key (str id) :id (str id)}
       [:polygon {:fill  (if selected "green" "black")
                  :points (str (- x 3) "," y " "
                               x "," (+ y 3) " "
@@ -131,7 +128,7 @@
   {:pre [(s/valid? ::d/position anchor-position)
          (s/valid? ::d/position relative-handle-position)]}
   (let [handle-position (pos-add anchor-position relative-handle-position)]
-    [:g {:key (str id)}
+    [:g.drag-me {:key (str id) :id (str id)}
       ;; Dashed line from path to handle
       [:path {:fill "none"
               :stroke "black"
@@ -182,11 +179,11 @@
           (handle->svg (str id "/" 0)
                        (:before selection)
                        position
-                       (polar->cartesian [(::d/after-length vertex) (::d/after-angle vertex)]))
+                       (polar->cartesian [(- (::d/before-length vertex)) (::d/before-angle vertex)]))
           (handle->svg (str id "/" 1)
                        (:after selection)
                        position
-                       (polar->cartesian [(- (::d/before-length vertex)) (::d/before-angle vertex)]))))))
+                       (polar->cartesian [(::d/after-length vertex) (::d/after-angle vertex)]))))))
 
 
 (defn- selection-for-anchor
@@ -250,3 +247,30 @@
                   :cx (str (get-in parsed [::d/position :x]))
                   :cy (str (get-in parsed [::d/position :y]))
                   :r (str (::d/radius parsed))}])))
+
+
+
+;;; move-anchors ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Multi-methods that know how to move the anchors of the different objects.
+;;
+
+(defmulti
+  object-with-anchor-moved
+  ; Dispatch function
+  (fn
+    [obj]
+    {:pre [(s/valid? ::d/object obj)]}
+    (::d/object-type obj)))
+
+(defmethod object-with-anchor-moved :path
+  [path anchor-id transform]
+  {:pre [(s/valid? ::d/path path)]}
+
+  (update-in path [::d/vertices anchor-id ::d/position] transform))
+
+(defmethod object-with-anchor-moved :circle
+  [circle anchor-id transform]
+  {:pre [(s/valid? ::d/circle circle)]}
+
+  (update circle ::d/position transform))

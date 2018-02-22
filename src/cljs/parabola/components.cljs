@@ -2,8 +2,10 @@
 ;; Reagent components
 ;;
 (ns parabola.components
-  (:require ;[parabola.domain :as d]
-            ;[clojure.spec.alpha :as s]
+  (:require [parabola.objects :as obj]
+            [parabola.domain :as d]
+            [parabola.utils :refer [pos-add pos-diff split-id]]
+            [clojure.spec.alpha :as s]
             [reagent.core :as reagent]
             [clojure.string :as str]
             [adzerk.cljs-console :as log :include-macros true]))
@@ -51,8 +53,8 @@
 ;        [tag props]    hiccup
 ;        on-dragmove-fn (:on-dragmove props)
 
-  (let [ctor (first component)
-        instance (ctor)
+  (let [[ctor & args] component
+        instance (apply ctor args)
         hiccup  (instance)
         [tag props]    hiccup
         on-dragmove-fn (:on-dragmove props)]
@@ -73,3 +75,40 @@
        {:component-did-mount #(if (install-handler % on-dragmove-fn) nil (log/warn "Failed to install interactjs handler"))
         :display-name  "draggable-component"  ;; for more helpful warnings & errors
         :reagent-render (fn [] hiccup)})))
+
+;
+;{::d/object-type :path
+;              ::d/id 0
+;              ::d/display-anchors [0 1 2]
+;              ::d/selected-anchors [0 2]
+;              ::d/vertices
+;              [
+;               {::d/vertex-type :handle-after ::d/position [100 300] ::d/after-angle 180 ::d/after-length 50}
+;               {::d/vertex-type :asymmetric ::d/position [150 350] ::d/before-angle -15 ::d/before-length 141 ::d/after-angle 45 ::d/after-length 62}
+;               {::d/vertex-type :handle-before ::d/position [300 300] ::d/before-angle 90 ::d/before-length 100}})))
+;
+
+; XXX Should make the ID spec enforce 0/0/0 format
+(defn- make-path-component-dragmove-handler
+  [state]
+  (fn [target-id move-vec] {:pre [(s/valid? ::d/dom-id target-id)]}
+    (println target-id)
+    (let [[obj-index anchor-index handle-index :as ids] (split-id target-id)]
+      (case (count ids)
+        2 ; I.e. path/anchor
+        (swap! state
+          #(obj/object-with-anchor-moved % anchor-index (partial pos-add move-vec)))
+
+        :else
+          (log/info (str "Ignoring drag of unhandled ID " target-id))))))
+
+
+(defn path-component
+  "A component which makes the given path editable"
+  [init-path]
+  (let [path (reagent/atom init-path)]
+    (fn []
+      [:svg {:width "400"
+             :height "400"
+             :on-dragmove (make-path-component-dragmove-handler path)}
+        (obj/object->svg @path)])))
