@@ -88,19 +88,16 @@
 ;               {::d/vertex-type :handle-before ::d/position [300 300] ::d/before-angle 90 ::d/before-length 100}})))
 ;
 
-; XXX Should make the ID spec enforce 0/0/0 format
 (defn- make-path-component-dragmove-handler
   [state]
   (fn [target-id move-vec] {:pre [(s/valid? ::d/dom-id target-id)]}
-    (println target-id)
-    (let [[obj-index anchor-index handle-index :as ids] (split-id target-id)]
-      (case (count ids)
-        2 ; I.e. path/anchor
+    (let [[obj-index _ :as ids] (split-id target-id)]
+      (if (= obj-index 0)
         (swap! state
-          #(obj/object-with-anchor-moved % anchor-index (partial pos-add move-vec)))
+          #(obj/object-with-node-moved % (rest ids) (partial pos-add move-vec)))
 
-        :else
-          (log/info (str "Ignoring drag of unhandled ID " target-id))))))
+        ; default
+        (println "Ignoring dragmove on unsupported ID " target-id)))))
 
 
 (defn path-component

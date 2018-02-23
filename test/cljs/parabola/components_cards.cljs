@@ -115,7 +115,7 @@
             {::d/object-type :path
              ::d/id 0
              ::d/display-anchors [0 1 2]
-        ;     ::d/display-handles [0 1 2]
+             ::d/display-handles [0 1 2]
              ::d/vertices
              [
               {::d/vertex-type :handle-after ::d/position [100 300] ::d/after-angle 180 ::d/after-length 50}

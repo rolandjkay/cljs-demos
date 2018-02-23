@@ -3,7 +3,7 @@
 ;;
 (ns parabola.objects
   (:require [parabola.domain :as d]
-            [parabola.utils :refer [value-in-collection? pairs pos-add pos-diff]]
+            [parabola.utils :refer [value-in-collection? pairs pos-add pos-diff split-id]]
             [clojure.spec.alpha :as s]
             [clojure.string :as str]
             [adzerk.cljs-console :as log :include-macros true]))
@@ -12,6 +12,11 @@
   "Convert an angle in degrees to radians"
   [t]
   (* (.-PI js/Math) (/ t 180)))
+
+(defn- rad->deg
+  "Convert an angle in radians to degrees"
+  [t]
+  (* 180 (/ t (.-PI js/Math))))
 
 (defn- polar->cartesian
   "Convert a polar coordinate to a castesian one"
@@ -24,6 +29,18 @@
   :args (s/and :polar ::d/position
                #(>= ((-> % :polar 0) 0)))
   :ret ::d/position)
+
+(defn- cartesian->polar
+  "Convert a Cartesian coordinate to a polar one"
+  [[x y]]
+  {:pre [(s/valid? ::d/position [x y])] :post [(s/valid? ::d/position %)]}
+
+  [  (js/Math.sqrt (+ (* x x) (* y y))),
+     (+ (-> (/ y x) js/Math.atan rad->deg)
+        (if (>= x 0)
+            (if (>= y 0) 0  360)
+            180))])
+
 
 (defn- position->svg
   "Render a position to an SVG string; [1 2]-> \"1,2\"
@@ -252,25 +269,99 @@
 
 ;;; move-anchors ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Multi-methods that know how to move the anchors of the different objects.
-;;
+;; Multi-methods that know how to move the anchors/handles (dit "nodes") of
+;; the different objects.
 
 (defmulti
-  object-with-anchor-moved
+  object-with-node-moved
   ; Dispatch function
   (fn
     [obj]
     {:pre [(s/valid? ::d/object obj)]}
     (::d/object-type obj)))
 
-(defmethod object-with-anchor-moved :path
-  [path anchor-id transform]
-  {:pre [(s/valid? ::d/path path)]}
+;;; object-with-node-moved [PATH] ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  (update-in path [::d/vertices anchor-id ::d/position] transform))
+(defn- with-transformed-after-handle
+  "Apply a Cartesian transform to an after-handle"
+  [vertex len-kw angle-kw transform]
+  ; 1) Convert to cartesian
+  ; 2) apply transform
+  ; 30 Convert back to polar
+  (let [[r t]
+        (-> [(len-kw vertex) (angle-kw vertex)]
+            polar->cartesian
+            transform
+            cartesian->polar)]
+    (print [r t] (transform [r t]))
+    (assoc (assoc vertex len-kw r) angle-kw t)))
 
-(defmethod object-with-anchor-moved :circle
-  [circle anchor-id transform]
+(defn- with-transformed-before-handle
+  "Apply a Cartesian transform to an before-handle"
+  [vertex len-kw angle-kw transform]
+  ; Same as above, but we have to mirror the coordinate system.
+  (let [[r t]
+        (-> [(len-kw vertex) (angle-kw vertex)]
+            polar->cartesian
+            pos-diff   ; With 1 arg this negates
+            transform
+            pos-diff
+            cartesian->polar)]
+    (assoc (assoc vertex len-kw r) angle-kw t)))
+
+
+(defmulti ^{:private true} vertex-with-handle-moved
+  "Return a copy of the vertex with the handle moved"
+  (fn [vertex]
+    {:pre [(s/valid? ::d/vertex vertex)]}
+    (::d/vertex-type vertex)))
+
+(defmethod vertex-with-handle-moved :no-handles
+  [vertex handle-id transform]
+  (println "Path ignoring invalid node ID (3)"))
+
+(defmethod vertex-with-handle-moved :handle-before
+  [vertex handle-id transform]
+  (if (not= handle-id 0)
+      (println "Path ignoring invalid node ID (4)")
+      (with-transformed-before-handle vertex ::d/before-length ::d/before-angle transform)))
+      ;; XXX Need to negate position
+
+(defmethod vertex-with-handle-moved :handle-after
+  [vertex handle-id transform]
+  (if (not= handle-id 1)
+      (println "Path ignoring invalid node ID (4)")
+      (with-transformed-after-handle vertex ::d/after-length ::d/after-angle transform)))
+
+(defmethod vertex-with-handle-moved :symmetric
+  [vertex handle-id transform]
+  (if (= handle-id 0)
+      (with-transformed-before-handle vertex ::d/length ::d/angle transform)
+      (with-transformed-after-handle vertex ::d/length ::d/angle transform)))
+
+(defmethod vertex-with-handle-moved :asymmetric
+  [vertex handle-id transform]
+  (if (= handle-id 0)
+      (with-transformed-before-handle vertex ::d/before-length ::d/before-angle transform)
+      (with-transformed-after-handle vertex ::d/after-length ::d/after-angle transform)))
+
+
+;; This has to handle anchors and 'handles'.
+(defmethod object-with-node-moved :path
+  [path node-path transform]
+  {:pre [(s/valid? ::d/path path)
+         (s/valid? ::d/id-path node-path)]}
+  (let [[anchor-id handle-id & rest] node-path]
+    (cond
+      rest            (println "Path ignoring invalid node ID (1)")
+      (not anchor-id) (println "Path ignoring invalid node ID (2)")
+      handle-id (update-in path [::d/vertices anchor-id] #(vertex-with-handle-moved % handle-id transform))
+      anchor-id (update-in path [::d/vertices anchor-id ::d/position] transform))))
+
+;;; object->svg [CIRCLE] ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defmethod object-with-node-moved :circle
+  [circle node-id transform]
   {:pre [(s/valid? ::d/circle circle)]}
 
   (update circle ::d/position transform))

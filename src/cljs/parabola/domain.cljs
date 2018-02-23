@@ -10,9 +10,15 @@
 (def dom-id-regex #"^[0-9](/[0-9])*$")
 (s/def ::dom-id (s/and string? #(re-matches dom-id-regex %)))
 
+;; For processing, we split IDs like "1/2/3" into [1 2 3]; we call this the
+;; ID path, as it gives the path of the node relative to the document root
+(s/def ::id-path (s/coll-of int?))
+
 ;;; PATH ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; XXX Actually, I think it would be easier to hold the positions of the
+;; handles as relative cartesian coordinates, rather than polar.
 ;; Difference types of vertex:
 ;; no-handles
 ;; handle-before                                         angle, length
