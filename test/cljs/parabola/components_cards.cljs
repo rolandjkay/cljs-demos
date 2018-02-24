@@ -141,9 +141,11 @@
              [
               {::d/vertex-type :symmetric ::d/position [10 110] ::d/angle 180 ::d/length 5}
               {::d/vertex-type :semi-symmetric ::d/position [180 180] ::d/angle -15 ::d/before-length 10 ::d/after-length 30}
-              {::d/vertex-type :symmetric ::d/position [300 120] ::d/angle 90 ::d/length 10}]}]]]]))
+              {::d/vertex-type :symmetric ::d/position [300 120] ::d/angle 90 ::d/length 10}]}
 
-        ;    {::d/object-type :circle
-        ;     ::d/id 2
-        ;     ::d/position 50 50
-        ;     ::d/radius 20}]]]]))
+            {::d/object-type :circle
+             ::d/id 3
+             ::d/display-anchors [0 1]
+             ::d/display-handles [0 1]
+             ::d/position [50 50]
+             ::d/radial [20 0]}]]]]))

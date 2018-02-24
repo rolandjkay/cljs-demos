@@ -3,7 +3,8 @@
 ;;
 (ns parabola.objects
   (:require [parabola.domain :as d]
-            [parabola.utils :refer [value-in-collection? pairs pos-add pos-diff split-id]]
+            [parabola.utils :refer [value-in-collection? pairs pos-add pos-diff
+                                    split-id valid? vector-length]]
             [clojure.spec.alpha :as s]
             [clojure.string :as str]
             [adzerk.cljs-console :as log :include-macros true]))
@@ -86,7 +87,7 @@
   ; Dispatch function
   (fn
     [obj]
-    {:pre [(s/valid? ::d/object obj)]}
+    {:pre [(valid? ::d/object obj)]}
     (::d/object-type obj)))
 
 ;;; object->svg [PATH] ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -127,8 +128,8 @@
 (defn- vertex-anchor->svg
   "Render an anchor"
   [vertex id selected]
-  {:pre [(s/valid? ::d/vertex vertex)
-         (s/valid? boolean? selected)]}
+  {:pre [(valid? ::d/vertex vertex)
+         (valid? boolean? selected)]}
 
   (let [[x y] (::d/position vertex)]
     [:g.drag-me {:key (str id) :id (str id)}
@@ -265,18 +266,26 @@
 
 ;;; object->svg [CIRCLE] ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defmethod object->svg :circle [obj]
-  (let [parsed (s/conform ::d/circle obj)]
-    (if (= parsed ::s/invalid)
-        (throw (ex-info "Invalid circle" (s/explain-data ::d/circle obj)))
-        [:circle {:id (::d/id parsed)
-                  :fill "none"
-                  :stroke "black"
-                  :cx (str (get-in parsed [::d/position :x]))
-                  :cy (str (get-in parsed [::d/position :y]))
-                  :r (str (::d/radius parsed))}])))
+(defmethod object->svg :circle [circle] {:pre [(valid? ::d/circle circle)]}
+  (let [{centre ::d/position, radial ::d/radial, id ::d/id} circle]
+    [:g {:id id}
+      [:circle {:fill "none"
+                :stroke "black"
+                :cx (centre 0)
+                :cy (centre 1)
+                :r (vector-length radial)}]
 
+      (if (value-in-collection? 0 (::d/display-anchors circle))
+        (vertex-anchor->svg
+          {::d/vertex-type :no-handles ::d/position centre}
+          (str id "/0")
+          (value-in-collection? 0 (::d/selected-anchors circle))))
 
+      (if (value-in-collection? 1 (::d/display-anchors circle))
+        (vertex-anchor->svg
+          {::d/vertex-type :no-handles ::d/position (pos-add centre radial)}
+          (str id "/1")
+          (value-in-collection? 1 (::d/selected-anchors circle))))]))
 
 ;;; move-anchors ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -376,10 +385,21 @@
       handle-id (update-in path [::d/vertices anchor-id] #(vertex-with-handle-moved % handle-id transform))
       anchor-id (update-in path [::d/vertices anchor-id ::d/position] transform))))
 
-;;; object->svg [CIRCLE] ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; object-with-node-moved [CIRCLE] ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defmethod object-with-node-moved :circle
   [circle node-id transform]
-  {:pre [(s/valid? ::d/circle circle)]}
+  {:pre [(valid? ::d/circle circle)]}
 
-  (update circle ::d/position transform))
+  (let [anchor-id (first node-id)]
+    (case anchor-id
+      0 (update circle ::d/position transform)
+      1 (update circle ::d/radial transform)
+      (log/warn "Circle ignoring invalid node ID"))))
+
+
+  ;(let [anchor-id (first node-id)]
+  ;  (println circle)
+  ;  (if (or (= anchor-id 0) (= anchor-id 1))
+  ;      (update-in circle [::d/circle-vertices anchor-id ::d/position] transform)
+  ;      (log/warn "Circle ignoring invalid node ID")})

@@ -3,7 +3,7 @@
 (ns parabola.domain
   (:require [clojure.spec.alpha :as s]))
 
-(s/def ::position (s/cat :x number? :y number?))
+(s/def ::position (s/tuple number? number?))
 (s/def ::id int?)
 
 ;; The IDs are concatonated together as string separated by '/' on the DOM.
@@ -66,11 +66,9 @@
 ;;; CIRCLE ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;(s/def ::circle (s/cat :obj-type #{:circle}
-;                       :id int?
-;                       :radius int?))
-(s/def ::radius int?)
-(s/def ::circle (s/keys :req [::object-type ::id ::position ::radius]))
+(s/def ::radial ::position)
+(s/def ::circle (s/keys :req [::object-type ::id ::position ::radial]
+                        :opt [::display-anchors ::selected-anchors]))
 
 ;;; OBJECT ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

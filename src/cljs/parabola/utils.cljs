@@ -1,4 +1,16 @@
-(ns parabola.utils)
+(ns parabola.utils
+  (:require [clojure.spec.alpha :as s]
+            [parabola.domain :as d]
+            [adzerk.cljs-console :as log :include-macros true]))
+
+(defn valid?
+  "A version of clojure.spec.alpha/valid? that logs on failure"
+  [spec obj]
+  (if (s/valid? spec obj)
+      true
+      (let [result (s/explain-str spec obj)]
+          (println result)
+          false)))
 
 (defn pairs
   "Generate a sequence of all pairs in xs"
@@ -18,3 +30,7 @@
 ;; Add and subtract positions
 (def pos-diff (partial mapv -))
 (def pos-add (partial mapv +))
+
+(defn vector-length [vec] {:pre (valid? ::d/position vec)}
+  (let [x (vec 0), y (vec 1)]
+    (js.Math.sqrt (+ (* x x) (* y y)))))
