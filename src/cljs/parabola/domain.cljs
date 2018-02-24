@@ -30,7 +30,7 @@
 (s/def ::vertex-with-handle-before (s/keys :req [::vertex-type ::position ::before-angle ::before-length]))
 (s/def ::vertex-with-handle-after (s/keys :req [::vertex-type ::position ::after-angle ::after-length]))
 (s/def ::vertex-symmetric (s/keys :req [::vertex-type ::position ::angle ::length]))
-(s/def ::vertex-semi-symmetric (s/keys :req [::vertex-type ::position ::after-angle ::before-length ::after-length]))
+(s/def ::vertex-semi-symmetric (s/keys :req [::vertex-type ::position ::angle ::before-length ::after-length]))
 (s/def ::vertex-asymmetric (s/keys :req [::vertex-type ::position ::before-angle ::after-angle ::before-length ::after-length]))
 
 (s/def ::vertex-type keyword?)

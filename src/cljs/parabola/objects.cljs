@@ -185,11 +185,22 @@
           (handle->svg (str id "/" 0)
                        (:before selection)
                        position
-                       (polar->cartesian [(::d/length vertex) (::d/angle vertex)]))
+                       (polar->cartesian [(- (::d/length vertex)) (::d/angle vertex)]))
           (handle->svg (str id "/" 1)
-                       position
                        (:after selection)
-                       (polar->cartesian [(- (::d/length vertex)) (::d/angle vertex)])))
+                       position
+                       (polar->cartesian [(::d/length vertex) (::d/angle vertex)])))
+
+      :semi-symmetric
+      (list
+        (handle->svg (str id "/" 0)
+                     (:before selection)
+                     position
+                     (polar->cartesian [(- (::d/before-length vertex)) (::d/angle vertex)]))
+        (handle->svg (str id "/" 1)
+                     (:after selection)
+                     position
+                     (polar->cartesian [(::d/after-length vertex) (::d/angle vertex)])))
 
       :asymmetric
         (list
@@ -339,6 +350,12 @@
       (with-transformed-before-handle vertex ::d/length ::d/angle transform)
       (with-transformed-after-handle vertex ::d/length ::d/angle transform)))
 
+(defmethod vertex-with-handle-moved :semi-symmetric
+  [vertex handle-id transform]
+  (if (= handle-id 0)
+      (with-transformed-before-handle vertex ::d/before-length ::d/angle transform)
+      (with-transformed-after-handle vertex ::d/after-length ::d/angle transform)))
+
 (defmethod vertex-with-handle-moved :asymmetric
   [vertex handle-id transform]
   (if (= handle-id 0)
@@ -351,6 +368,7 @@
   [path node-path transform]
   {:pre [(s/valid? ::d/path path)
          (s/valid? ::d/id-path node-path)]}
+
   (let [[anchor-id handle-id & rest] node-path]
     (cond
       rest            (println "Path ignoring invalid node ID (1)")

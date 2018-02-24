@@ -76,36 +76,30 @@
         :display-name  "draggable-component"  ;; for more helpful warnings & errors
         :reagent-render (fn [] hiccup)})))
 
-;
-;{::d/object-type :path
-;              ::d/id 0
-;              ::d/display-anchors [0 1 2]
-;              ::d/selected-anchors [0 2]
-;              ::d/vertices
-;              [
-;               {::d/vertex-type :handle-after ::d/position [100 300] ::d/after-angle 180 ::d/after-length 50}
-;               {::d/vertex-type :asymmetric ::d/position [150 350] ::d/before-angle -15 ::d/before-length 141 ::d/after-angle 45 ::d/after-length 62}
-;               {::d/vertex-type :handle-before ::d/position [300 300] ::d/before-angle 90 ::d/before-length 100}})))
-;
 
-(defn- make-path-component-dragmove-handler
-  [state]
+
+;; A component which, given one or more objects, allow the user to edit them.
+;;
+;;
+
+(defn- make-edit-given-component-dragmove-handler
+  [objects]
   (fn [target-id move-vec] {:pre [(s/valid? ::d/dom-id target-id)]}
-    (let [[obj-index _ :as ids] (split-id target-id)]
-      (if (= obj-index 0)
-        (swap! state
-          #(obj/object-with-node-moved % (rest ids) (partial pos-add move-vec)))
-
-        ; default
-        (println "Ignoring dragmove on unsupported ID " target-id)))))
+    (let [[obj-index & rest] (split-id target-id)]
+      (swap! objects
+        update obj-index ; <- @objects gets passed as first arg; so this runs func below on ith element on objects
+        obj/object-with-node-moved rest (partial pos-add move-vec)))))
 
 
-(defn path-component
-  "A component which makes the given path editable"
-  [init-path]
-  (let [path (reagent/atom init-path)]
+(defn edit-given-component
+  "A component which makes the given objects editable"
+  [initial-objects]
+  {:pre [(s/valid? ::d/objects initial-objects)]}
+
+  (let [objects (reagent/atom initial-objects)]
+    (print ":::" @objects)
     (fn []
       [:svg {:width "400"
              :height "400"
-             :on-dragmove (make-path-component-dragmove-handler path)}
-        (obj/object->svg @path)])))
+             :on-dragmove (make-edit-given-component-dragmove-handler objects)}
+        (map obj/object->svg @objects)])))
