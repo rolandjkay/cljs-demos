@@ -7,7 +7,7 @@
                                     split-id valid? vector-length]]
             [clojure.spec.alpha :as s]
             [clojure.string :as str]
-            [adzerk.cljs-console :as log :include-macros true]))
+            [parabola.log :as log]))
 
 (defn- deg->rad
   "Convert an angle in degrees to radians"
@@ -233,7 +233,7 @@
          (filter #(= anchor-index (first %)) selected-handles))))
 
 (defmethod object->svg :path [path] {:pre [(s/valid? ::d/path path)]}
-  [:g {:id (::d/id path)}
+  [:g {:id (::d/id path) :key (::d/id path)}
     [:path {:fill "none"
             :stroke "black"
             :d (str/join " "
@@ -268,7 +268,7 @@
 
 (defmethod object->svg :circle [circle] {:pre [(valid? ::d/circle circle)]}
   (let [{centre ::d/position, radial ::d/radial, id ::d/id} circle]
-    [:g {:id id}
+    [:g {:id id :key id}
       [:circle {:fill "none"
                 :stroke "black"
                 :cx (centre 0)
@@ -313,7 +313,6 @@
             polar->cartesian
             transform
             cartesian->polar)]
-    (print [r t] (transform [r t]))
     (assoc (assoc vertex len-kw r) angle-kw t)))
 
 (defn- with-transformed-before-handle
@@ -338,19 +337,19 @@
 
 (defmethod vertex-with-handle-moved :no-handles
   [vertex handle-id transform]
-  (println "Path ignoring invalid node ID (3)"))
+  (log/warn "Path ignoring invalid node ID (3)"))
 
 (defmethod vertex-with-handle-moved :handle-before
   [vertex handle-id transform]
   (if (not= handle-id 0)
-      (println "Path ignoring invalid node ID (4)")
+      (log/warn "Path ignoring invalid node ID (4)")
       (with-transformed-before-handle vertex ::d/before-length ::d/before-angle transform)))
       ;; XXX Need to negate position
 
 (defmethod vertex-with-handle-moved :handle-after
   [vertex handle-id transform]
   (if (not= handle-id 1)
-      (println "Path ignoring invalid node ID (4)")
+      (log/warn "Path ignoring invalid node ID (4)")
       (with-transformed-after-handle vertex ::d/after-length ::d/after-angle transform)))
 
 (defmethod vertex-with-handle-moved :symmetric
@@ -380,8 +379,8 @@
 
   (let [[anchor-id handle-id & rest] node-path]
     (cond
-      rest            (println "Path ignoring invalid node ID (1)")
-      (not anchor-id) (println "Path ignoring invalid node ID (2)")
+      rest            (log/warn "Path ignoring invalid node ID (1)")
+      (not anchor-id) (log/warn "Path ignoring invalid node ID (2)")
       handle-id (update-in path [::d/vertices anchor-id] #(vertex-with-handle-moved % handle-id transform))
       anchor-id (update-in path [::d/vertices anchor-id ::d/position] transform))))
 

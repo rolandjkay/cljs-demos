@@ -7,7 +7,6 @@
                  [reagent-utils "0.3.0"]
                  [re-frame "0.10.4"]
                  [secretary "1.2.3"]
-                 [adzerk/cljs-console "0.1.1"]
                  [cljsjs/interact "1.2.8-0"]]
 
   :plugins [[lein-cljsbuild "1.1.7"]]

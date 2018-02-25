@@ -1,7 +1,7 @@
 (ns parabola.utils
   (:require [clojure.spec.alpha :as s]
             [parabola.domain :as d]
-            [adzerk.cljs-console :as log :include-macros true]))
+            [parabola.log :as log]))
 
 (defn valid?
   "A version of clojure.spec.alpha/valid? that logs on failure"
@@ -9,7 +9,7 @@
   (if (s/valid? spec obj)
       true
       (let [result (s/explain-str spec obj)]
-          (println result)
+          (log/warn result)
           false)))
 
 (defn pairs

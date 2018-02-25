@@ -5,8 +5,8 @@
             [goog.events :as gevents]
             [goog.history.EventType :as EventType]
             [re-frame.core :as re-frame]
-            [parabola.events :as events]
-            ))
+            [parabola.events :as events]))
+
 
 (defn hook-browser-navigation! []
   (doto (History.)
