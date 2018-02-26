@@ -1,6 +1,12 @@
 (ns parabola.events
   (:require [re-frame.core :as re-frame]
-            [parabola.db :as db]))
+            [parabola.db :as db]
+            [parabola.domain :as d]
+            [parabola.tools :as tools]
+            [clairvoyant.core :refer-macros [trace-forms]]
+            [re-frame-tracer.core :refer [tracer]]))
+
+
 
 (re-frame/reg-event-db
  ::initialize-db
@@ -12,55 +18,38 @@
  (fn [db [_ active-panel]]
    (assoc db :active-panel active-panel)))
 
-(re-frame/reg-event-db
-  :set-start-point-x
-  (fn [db [_ val]]
-    (assoc-in db [:anchor-points 0 :x] val)))
-    ;(assoc db :start-point (assoc (:start-point db) :x val))))
 
 (re-frame/reg-event-db
-  :select-object
-  (fn [db [_ object-type object-index client-origin]]
-    (assoc db :selected-object
-      {
-        :object-type object-type
-        :object-index object-index
-        :client-origin client-origin
-        :origin (get-in db [(if (= object-type :handle) :handle-positions :anchor-points) object-index])})))
+  :cmds/select-tool
+  (fn [db [_ tool-kw]]
+    (assoc db ::d/selected-tool tool-kw)))
 
 
-(defn neg-position [position]
-  ; Apply '-' to all values
-  (reduce (fn [m [k v]] (assoc m k (- v))) {} position))
+;;
+;; Forward any interactions with the 'canvas' to the selected tool.
 
-(defn add-positions [& positions]
-  {:x (apply + (map :x positions))
-   :y (apply + (map :y positions))})
+(trace-forms {:tracer (tracer :color "red")}
+  (re-frame/reg-fx
+    :tools/dispatch-click
+    (fn tools-display-click-fx-handler [[tool-kw position]]
+      (some-> tool-kw tools/tools-map (#(tools/click % position)))))
 
-(re-frame/reg-event-db
-  :mouse-move
-  (fn [db [_ client-position]]
-    ; If the selected handle is one of the handles (and not :none) then
-    ; update that handles position.
-    (let [{:keys [object-type object-index client-origin origin]}  (:selected-object db)]
-      (cond (= object-type :handle)
-            (assoc-in db [:handle-positions object-index]
-              (add-positions origin client-position (neg-position client-origin)))
-
-            (= object-type :anchor)
-            (assoc-in db [:anchor-points object-index]
-              (add-positions origin client-position (neg-position client-origin)))
-
-            :else db))))
-
-(re-frame/reg-event-db
-  :add-anchor
-  (fn [db [_]]
-    (assoc db :anchor-points (conj (:anchor-points db) {:x 50 :y 50})
-              :handle-positions (conj (:handle-positions db) {:x 100 :y 50}))))
+  (re-frame/reg-event-fx
+    :canvas/click
+    (fn canvas-click-handler [cofx [_ position]]
+        {:tools/dispatch-click [(get-in cofx [:db ::d/selected-tool]) position]})))
 
 
-(re-frame/reg-event-db
-  :select-delete-anchor-tool
-  (fn [db [_]]
-    (assoc db :selected-tool :delete)))
+;;
+;; Object creation events
+
+
+(trace-forms {:tracer (tracer :color "red")}
+  ;; XXX This is, basically, a ctor for circle.
+  (re-frame/reg-event-db
+    :objects/create-circle
+    (fn create-circle-handler [db [_ position radius]]
+      (update db ::d/objects conj {::d/object-type :circle,
+                                   ::d/id (count (::d/objects db)),
+                                   ::d/position position,
+                                   ::d/radial [radius 0]}))))

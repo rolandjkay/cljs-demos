@@ -96,5 +96,4 @@
                                                    :client-origin ::position)))
 
 (s/def ::db (s/keys :req [ ::objects
-                           ::selected-tool
-                           ::move-tool-state]))
+                           ::selected-tool]))

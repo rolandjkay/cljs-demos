@@ -1,6 +1,7 @@
 (ns parabola.components-cards
   (:require [cljsjs.interact]
             [reagent.core :as reagent]
+            [re-frame.core :as re-frame]
             [sablono.core :as sab] ; just for example
             [parabola.objects :refer [object->svg]]
             [parabola.domain :as d]
@@ -81,8 +82,7 @@
 (defcard make-draggable-test
   (reagent/as-element
     [:div
-      [:h1 "make-draggable test"]
-      [c/make-draggable
+      [:h1 "make-draggable test"
         [balls-component]]]))
 
 (defcard make-draggable-test
@@ -153,3 +153,21 @@
              ::d/display-handles [0 1]
              ::d/position [50 50]
              ::d/radial [20 0]}]]]]))
+
+;; Set up a dummy app-state for tests
+;;
+(re-frame/reg-event-db
+ ::initialize-db
+ (fn  [_ _]
+   {::d/selected-tool :tools/node-move}))
+
+(re-frame/reg-event-db
+  :cmds/select-tool
+  (fn [db [_ tool-kw]]
+    (assoc db ::d/selected-tool tool-kw)))
+
+(re-frame.core/dispatch [::initialize-db])
+
+(defcard toolbar
+  (reagent/as-element
+    [c/toolbar]))

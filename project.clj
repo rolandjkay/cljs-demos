@@ -25,10 +25,13 @@
   {:dev
    {:repl-options {:init-ns parabola.repl
                    :nrepl-middleware [cemerick.piggieback/wrap-cljs-repl]}
-    :dependencies [[binaryage/devtools "0.9.4"]
+    :dependencies [[binaryage/devtools "0.9.9"]
                    [org.clojure/test.check "0.9.0"]
                    [lein-doo "0.1.8"]
-                   [com.cemerick/piggieback "0.2.2"]]
+                   [com.cemerick/piggieback "0.2.2"]
+                   ;; re-frame tracing: https://github.com/Day8/re-frame/blob/master/docs/Debugging.md
+                   [org.clojars.stumitchell/clairvoyant "0.2.1"]
+                   [day8/re-frame-tracer "0.1.1-SNAPSHOT"]]
 
     :plugins      [[lein-figwheel "0.5.13"]
                    [lein-doo "0.1.8"]]}}
@@ -47,7 +50,9 @@
                     :asset-path           "js/compiled/out"
                     :source-map-timestamp true
                     :preloads             [devtools.preload]
-                    :external-config      {:devtools/config {:features-to-install :all}}}}
+                    :external-config      {:devtools/config {:features-to-install :all}}
+                    ; Turn on re-frame tracing
+                    :closure-defines {"clairvoyant.core.devmode" true}}}
 
     {:id "devcards"
        :source-paths ["src/cljs" "test/cljs"]
