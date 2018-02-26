@@ -45,4 +45,4 @@
           {::d/object-type :circle
            ::d/id          2
            ::d/position    [100 100]
-           ::d/radius      100}))))
+           ::d/radial      [100 0]}))))

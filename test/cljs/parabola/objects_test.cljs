@@ -52,13 +52,14 @@
 
 (deftest circle->svg-test
   (testing "circle->svg"
-    (let [[tag props] (obj/object->svg
-                         {::d/object-type :circle
-                          ::d/id 999
-                          ::d/position [100 100]
-                          ::d/radius 50})]
-      (is (= (:id props) 999))
+    (let [[g_tag g_props [tag props & rest]]
+          (obj/object->svg
+            {::d/object-type :circle
+             ::d/id 999
+             ::d/position [100 100]
+             ::d/radial [50 0]})]
+      (is (= (:id g_props) 999))
       (is (= tag :circle))
-      (is (= (:cx props) "100"))
-      (is (= (:cy props) "100"))
-      (is (= (:r props) "50")))))
+      (is (= (str (:cx props)) "100"))
+      (is (= (str (:cy props)) "100"))
+      (is (= (str (:r props)) "50")))))
