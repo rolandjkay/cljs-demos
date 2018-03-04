@@ -2,7 +2,9 @@
 ;; Reagent components
 ;;
 (ns parabola.components
-  (:require [parabola.objects :as obj]
+  (:use-macros [cljs.core.async.macros :only [go]])
+  (:require [cljs.core.async :refer [<! timeout]]
+            [parabola.objects :as obj]
             [parabola.domain :as d]
             [parabola.utils :refer [pos-add pos-diff split-id valid?]]
             [clojure.spec.alpha :as s]
@@ -13,34 +15,85 @@
             [parabola.log :as log]
             [parabola.subs :as subs]))
 
-(defn- install-handler
+(defn- install-handlers
   "Installs interactsj handler
 
   Return Interactable object, or nil of failure
   "
-  [this handler]
+  [this handlers]
   (some-> ".drag-me"
     (js/interact {:context (reagent/dom-node this)})
     (.draggable true)
-    (.on "tap" (fn [e] (println "<<< tapped >>>")))
+    ;(.on "tap" (fn [e] (println "<<< tapped >>>")))
     (.on "dragmove"
       (fn [e]
-        (let [target-id (-> e .-target .-id)
-              move-vec [(.-dx e) (.-dy e)]]
+        (let [target-id (-> e .-target .-id),
+              move-vec  [(.-dx e) (.-dy e)],
+              handler   (:dragmove handlers)]
           (if handler
               (handler target-id move-vec)
-              (log/warn "No on-dragmove attrib in component")))))))
+              (log/info "Component ignoring 'dragmove' event")))))))
+
+;  (some-> "#canvas"
+;    (js/interact {:context (reagent/dom-node this)})
+;    (.on "doubletap"
+;      (fn [e]
+;        (let [position [(.-offsetX e) (.-offsetY e)]
+;              handler  (:canvas-doubletap handlers))
+;          (if handler
+;              (handler position)
+;              (log/info "Component ignoring 'doubletap' event")))))
+;    (.on "tap"
+;      (fn [e]
+;        (let [position [(.-offsetX e) (.-offsetY e)]
+;              handler  (:canvas-tap handlers))
+;          (if handler
+;              (handler position)
+;              (log/info "Component ignoring 'tap' event")))))
+;    (.on "move"
+;      (fn [e]
+;        (let [position [(.-offsetX e) (.-offsetY e)]
+;              handler  (:canvas-move handlers))
+;          (if handler
+;              (handler position)
+;              (log/info "Component ignoring 'move' event")))))))
 
 
 (defn make-draggable
   "A HOC which endows a simple component with selection and drag of SVG elements"
-  [wrapped-component on-dragmove-fn]
-  {:pre [(valid? fn? on-dragmove-fn)]}
+  [wrapped-component event-handlers]
+  {:pre [(valid? (s/map-of keyword? fn?) event-handlers)]}
 
-  (reagent/create-class
-    {:component-did-mount #(if (install-handler % on-dragmove-fn) nil (log/warn "Failed to install interactjs handler"))
-     :display-name  "draggable-component"  ;; for more helpful warnings & errors
-     :reagent-render wrapped-component}))
+  (let [top-left             (atom [0 0])
+        click-handler         (:canvas-click event-handlers)
+        double-click-handler (:canvas-double-click event-handlers)]
+    (reagent/create-class
+      {:component-did-mount
+        (fn [this]
+          (if (install-handlers this event-handlers)
+              nil
+              (log/warn "Failed to install interactjs handlers"))
+
+          (let [rect (. (reagent/dom-node this) getBoundingClientRect)]
+            (reset! top-left [(.-left rect) (.-top rect)])))
+
+       :display-name  "draggable-component"  ;; for more helpful warnings & errors
+       :reagent-render
+         (fn make-draggable-render []
+           (let [click-count (atom 0)]
+             [:div {:on-click (fn [e]
+                                (swap! click-count inc)
+                                (let [position (pos-diff [(.-clientX e) (.-clientY e)] @top-left)]
+
+                                  (go
+                                    (<! (timeout 300))
+                                    (case @click-count
+                                      0 nil
+                                      ; Call event handlers, if defined
+                                      1 (if click-handler (click-handler position))
+                                      (if double-click-handler (double-click-handler position)))
+                                    (reset! click-count 0))))}
+               [wrapped-component]]))})))
 
 ;; A component which, given one or more objects, allow the user to edit them.
 ;;
@@ -57,12 +110,16 @@
                :height "400"}
           (map obj/object->svg @objects)])
 
-      ;; Drag handler
-      (fn [target-id move-vec] {:pre [(s/valid? ::d/dom-id target-id)]}
-        (let [[obj-index & rest] (split-id target-id)]
-          (swap! objects
-            update obj-index ; <- @objects gets passed as first arg; so this runs func below on ith element on objects
-            obj/object-with-node-moved rest (partial pos-add move-vec)))))))
+       ;; Event handlers
+      {
+       :dragmove
+       (fn [target-id move-vec] {:pre [(s/valid? ::d/dom-id target-id)]}
+         (let [[obj-index & rest] (split-id target-id)]
+           (swap! objects
+             update obj-index ; <- @objects gets passed as first arg; so this runs func below on ith element on objects
+             obj/object-with-node-moved rest (partial pos-add move-vec))))})))
+
+
 
 ;; An SVG-canvas control which dispatches re-frame events.
 ;;
@@ -71,24 +128,54 @@
    objects in the application state.
   "
   [{:keys [props] :or {props {}}}]
-  (println props (get props :width "800"))
-  (make-draggable
-    ;; Renderer
-    (fn []
-      [:svg {:width (get props :width "800"),
-             :height (get props :height "800"),
-             :on-click
-             (fn svg-canvas-on-click-handler [e]
-               (let [rect (-> e .-target .getBoundingClientRect)];)
-                 (re-frame/dispatch
-                   [:canvas/click [(- (.-clientX e) (.-left rect))
-                                   (- (.-clientY e) (.-top rect))]])))}
-        (map obj/object->svg @(re-frame/subscribe [:subs/objects]))])
+  (let [foo (atom 0)]
+    (make-draggable
+      ;; Renderer
+      (fn []
+        [:svg#canvas
+              {:width (get props :width "800"),
+               :height (get props :height "800"),}
+      ;         :on-click (fn [e]
+      ;                    (swap! foo inc)
+      ;                    (go
+      ;                      (<! (timeout 5000))
+      ;                      (case @foo
+      ;                        0 (println "NOTHING")
+      ;                        1 (println "CLICK")
+      ;                        (println "DOUBLECLICK")
+      ;                      (reset! foo 0)}
+            ;   :on-click
+            ;   (fn svg-canvas-on-click-handler [e]
+            ;     (let [rect (-> e .-target .getBoundingClientRect)];)
+            ;       (re-frame/dispatch
+            ;         [:canvas/click [(- (.-clientX e) (.-left rect))
+            ;                         (- (.-clientY e) (.-top rect))}
+          (map obj/object->svg @(re-frame/subscribe [:subs/objects]))])
 
-    ;; Drag handler
-    (fn [target-id move-vec])))
-;      {:pre [(valid? ::d/dom-id target-id) (valid? ::d/position move-vec)]}
-;      (re-frame/dispatch [:canvas/dragmove (split-id target-id) move-vec]))))
+      ;; Event handlers
+      {
+       ;; Drag handler
+       :dragmove
+       (fn [target-id move-vec])
+   ;      {:pre [(valid? ::d/dom-id target-id) (valid? ::d/position move-vec)]}
+   ;      (re-frame/dispatch [:canvas/dragmove (split-id target-id) move-vec]))))
+
+       ;; move handler
+       :canvas-move
+       (cljs.core/fn [position] {:pre [(valid? ::d/position position)]}
+         (re-frame/dispatch [:canvas/move position]))
+
+       ;; tap handler
+       :canvas-click
+       (cljs.core/fn [position] {:pre [(valid? ::d/position position)]}
+         (re-frame/dispatch [:canvas/click position]))
+
+       ;; doubletap handler
+       :canvas-double-click
+       (cljs.core/fn [position] {:pre [(valid? ::d/position position)]}
+         (println "doubletap")
+         (re-frame/dispatch [:canvas/double-click position]))})))
+
 
 (defn toolbar
   "A toolbar component"
@@ -112,4 +199,5 @@
        [:p "Objects"]
        (tool-button :tools/object-move "Move")
        (tool-button :tools/object-delete "Delete")
-       (tool-button :tools/circle-add "Circle")]]))
+       (tool-button :tools/make-circle "Circle")
+       (tool-button :tools/make-path "Path")]]))

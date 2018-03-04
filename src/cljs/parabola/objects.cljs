@@ -204,15 +204,15 @@
                      (polar->cartesian [(::d/after-length vertex) (::d/angle vertex)])))
 
       :asymmetric
-        (list
-          (handle->svg (str id "/" 0)
-                       (:before selection)
-                       position
-                       (polar->cartesian [(- (::d/before-length vertex)) (::d/before-angle vertex)]))
-          (handle->svg (str id "/" 1)
-                       (:after selection)
-                       position
-                       (polar->cartesian [(::d/after-length vertex) (::d/after-angle vertex)]))))))
+      (list
+        (handle->svg (str id "/" 0)
+                     (:before selection)
+                     position
+                     (polar->cartesian [(- (::d/before-length vertex)) (::d/before-angle vertex)]))
+        (handle->svg (str id "/" 1)
+                     (:after selection)
+                     position
+                     (polar->cartesian [(::d/after-length vertex) (::d/after-angle vertex)]))))))
 
 
 (defn- selection-for-anchor

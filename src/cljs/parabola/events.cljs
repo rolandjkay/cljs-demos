@@ -3,6 +3,7 @@
             [parabola.db :as db]
             [parabola.domain :as d]
             [parabola.tools :as tools]
+            [parabola.utils :refer [valid?]]
             [clairvoyant.core :refer-macros [trace-forms]]
             [re-frame-tracer.core :refer [tracer]]))
 
@@ -28,20 +29,45 @@
 ;;
 ;; Forward any interactions with the 'canvas' to the selected tool.
 
-(trace-forms {:tracer (tracer :color "red")}
-  (re-frame/reg-fx
-    :tools/dispatch-click
-    (fn tools-display-click-fx-handler [[tool-kw position]]
-      (some-> tool-kw tools/tools-map (#(tools/click % position)))))
+;(trace-forms {:tracer (tracer :color "red")}
+;  (re-frame/reg-fx
+;    :tools/dispatch-click
+;    (fn tools-display-click-fx-handler [[tool-kw db position]]
+;      (some-> tool-kw tools/tools-map (#(tools/click % db position)))))
+;
+;  (re-frame/reg-event-fx
+;    :canvas/click
+;    (fn canvas-click-handler [cofx [_ position]]
+;        {:tools/dispatch-click [(get-in cofx [:db ::d/selected-tool]) (:db cofx) position]})))
 
-  (re-frame/reg-event-fx
-    :canvas/click
-    (fn canvas-click-handler [cofx [_ position]]
-        {:tools/dispatch-click [(get-in cofx [:db ::d/selected-tool]) position]})))
+
+(re-frame/reg-event-db
+  :canvas/click
+  (cljs.core/fn [db [_ position]] {:pre [(valid? ::d/db db)], :post [(valid? ::d/db %)]}
+    ;; Let the currently-selected tool handle.
+    (let [tool-kw (::d/selected-tool db),
+          tool  (tool-kw tools/tools-map)]
+      (tools/on-click tool db position))))
+
+(re-frame/reg-event-db
+  :canvas/double-click
+  (cljs.core/fn [db [_ position]] {:pre [(valid? ::d/db db)], :post [(valid? ::d/db %)]}
+    ;; Let the currently-selected tool handle.
+    (let [tool-kw (::d/selected-tool db),
+          tool  (tool-kw tools/tools-map)]
+      (tools/on-double-click tool db position))))
+
+(re-frame/reg-event-db
+  :canvas/move
+  (cljs.core/fn [db [_ position]] {:pre [(valid? ::d/db db)], :post [(valid? ::d/db %)]}
+    ;; Let the currently-selected tool handle.
+    (let [tool-kw (::d/selected-tool db),
+          tool  (tool-kw tools/tools-map)]
+      (tools/on-move tool db position))))
 
 
 ;;
-;; Object creation events
+;; Object events
 
 
 (trace-forms {:tracer (tracer :color "red")}

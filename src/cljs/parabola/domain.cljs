@@ -84,10 +84,14 @@
 
 (s/def ::object (s/multi-spec object-type ::object-type))
 
-(s/def ::objects (s/coll-of ::object :kind vector?))
+(s/def ::objects (s/map-of int? ::object))
 
-;;; TOOL STATES ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(s/def ::next-object-id ::id)
+
+;;; TOOLS  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(s/def ::selected-tool #{:tools/make-circle :tools/make-path :tools/node-move})
 
 (s/def ::null-move-tool-state (s/or :none #{::none}
                                     :object (s/cat :object-type   #{::path}
@@ -95,5 +99,6 @@
                                                    :origin        ::position
                                                    :client-origin ::position)))
 
-(s/def ::db (s/keys :req [ ::objects
+(s/def ::db (s/keys :req [ ::next-object-id
+                           ::objects
                            ::selected-tool]))

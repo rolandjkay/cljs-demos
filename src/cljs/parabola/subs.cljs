@@ -18,4 +18,4 @@
 ;; Simple lookups from the db
 (trace-forms {:tracer (tracer :color "green")}
   (re-frame/reg-sub :subs/selected-tool  (fn selected-tool-accessor [db _] (::d/selected-tool db)))
-  (re-frame/reg-sub :subs/objects (fn objects-accessor [db _] (::d/objects db))))
+  (re-frame/reg-sub :subs/objects (fn objects-accessor [db _] (vals (::d/objects db)))))

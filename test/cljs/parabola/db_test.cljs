@@ -2,13 +2,14 @@
   (:require [clojure.test :refer [deftest testing is are run-tests]]
             [parabola.domain :as d]
             [parabola.db]
+            [parabola.utils :refer [valid?]]
             [clojure.spec.alpha :as s]))
 
 
 
 (deftest is-db-valid
   (testing "that the DB is valid"
-    (is (s/valid? ::d/db parabola.db/default-db))))
+    (is (valid? ::d/db parabola.db/default-db))))
 
 ;  (:require [clojure.test.check :as tc]
 ;            [clojure.test.check.generators :as gen]
