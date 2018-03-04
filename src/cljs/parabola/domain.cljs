@@ -91,7 +91,10 @@
 ;;; TOOLS  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(s/def ::selected-tool #{:tools/make-circle :tools/make-path :tools/node-move})
+(s/def ::selected-tool #{:tools/make-circle
+                         :tools/make-path
+                         :tools/node-move
+                         :tools/object-delete})
 
 (s/def ::null-move-tool-state (s/or :none #{::none}
                                     :object (s/cat :object-type   #{::path}

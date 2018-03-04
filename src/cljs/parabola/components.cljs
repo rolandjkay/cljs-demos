@@ -37,7 +37,7 @@
 
 (defn make-draggable
   "A HOC which endows a simple component with selection and drag of SVG elements"
-  [wrapped-component event-handlers]
+  [wrapped-component event->obj-id event-handlers]
   {:pre [(valid? (s/map-of keyword? fn?) event-handlers)]}
 
   (let [top-left (atom [0 0]),
@@ -47,7 +47,7 @@
               canvas-double-click (fn [position] (log/info "Missing canvas-double-click handler")),
               canvas-move (fn [position] (log/info "Missing canvas-move handler"))}}
         event-handlers,
-        event->position (fn [e] (pos-diff [(.-clientX e) (.-clientY e)] @top-left))]
+        event->position (fn [e] (let [x (pos-diff [(.-clientX e) (.-clientY e)] @top-left)] x))]
 
     (reagent/create-class
       {:component-did-mount
@@ -65,14 +65,14 @@
            (let [click-count (atom 0)]
              [:div {:on-click (fn [e]
                                 (swap! click-count inc)
-                                (let [position (pos-diff [(.-clientX e) (.-clientY e)] @top-left)]
-
+                                (let [position (event->position e)
+                                      target-id (event->obj-id e)]
                                   (go
                                     (<! (timeout 300))
                                     (case @click-count
                                       0 nil
-                                      1 (canvas-click position)
-                                      (canvas-double-click position))
+                                      1 (canvas-click position target-id)
+                                      (canvas-double-click position target-id))
                                     (reset! click-count 0))))
                     :on-mouse-move #(-> % event->position canvas-move)}
                [wrapped-component]]))})))
@@ -91,6 +91,9 @@
         [:svg {:width "400"
                :height "400"}
           (map obj/object->svg @objects)])
+
+      ;; Event -> object ID
+      (fn [e] nil)
 
        ;; Event handlers
       {
@@ -119,6 +122,19 @@
                :height (get props :height "800"),}
           (map obj/object->svg @(re-frame/subscribe [:subs/objects]))])
 
+      ;; event to object-id function
+      ;; - This depends on our object model; so, it's not generic and can't
+      ;;   be in make-draggable
+      (fn canvas-event->obj-id [event]
+        (loop [e (.-target event)]
+          (let [id (.-id e)
+                id-int (js/parseInt id)]
+            (cond
+              (= id "canvas")            nil ,   ; <- give up when we get to the canvas.
+              (not (js/isNaN id-int))    id-int, ; parseInt parses "4/1/2" to 4
+              (nil? (.-parentElement e)) nil ,   ; <- or if we get to the DOM root!
+              :else                      (recur (.-parentElement e))))))
+
       ;; Event handlers
       {
        ;; Drag handler
@@ -134,14 +150,17 @@
 
        ;; tap handler
        :canvas-click
-       (cljs.core/fn [position] {:pre [(valid? ::d/position position)]}
-         (re-frame/dispatch [:canvas/click position]))
+       (cljs.core/fn [position obj-id]
+         {:pre [(valid? ::d/position position)
+                (valid? (s/nilable int?) obj-id)]}
+         (re-frame/dispatch [:canvas/click position obj-id]))
 
        ;; doubletap handler
        :canvas-double-click
-       (cljs.core/fn [position] {:pre [(valid? ::d/position position)]}
-         (println "doubletap")
-         (re-frame/dispatch [:canvas/double-click position]))})))
+       (cljs.core/fn [position obj-id]
+         {:pre [(valid? ::d/position position)
+                (valid? (s/nilable int?) obj-id)]}
+         (re-frame/dispatch [:canvas/double-click position obj-id]))})))
 
 
 (defn toolbar

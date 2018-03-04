@@ -11,8 +11,8 @@
   "A protocol for tools that re-frame uses to forward interactions"
   (on-selected [this db] "The tool was selected")
   (on-unselected [this db] "The tool was unselected")
-  (on-click [this db position] "The canvas was clicked")
-  (on-double-click [this db position] "The canvas was double clicked")
+  (on-click [this db position obj-id] "The canvas was clicked")
+  (on-double-click [this db position obj-id] "The canvas was double clicked")
   (on-move [this db dpos]))
 
 
@@ -22,12 +22,20 @@
 
 (defrecord MakeCircle []
     ITool
-    (on-selected [this db] (log/info "Make circle tool selected"))
-    (on-unselected [this db] (log/info "Make circle tool unselected"))
-    (on-click [this db position]
-      (re-frame/dispatch [:objects/create-circle position 20]))
-    (on-double-click [this db position])
-    (on-move [this db dpos]))
+    (on-selected [this db] (log/info "Make circle tool selected") db)
+    (on-unselected [this db] (log/info "Make circle tool unselected") db)
+    (on-click [this db position obj-id]
+      (let [next-object-id  (::d/next-object-id db)]
+        (-> db
+          (assoc-in [::d/objects next-object-id]
+            {::d/object-type :circle,
+             ::d/id next-object-id,
+             ::d/position position,
+             ::d/radial [20 0]})
+          (update ::d/next-object-id inc))))
+
+    (on-double-click [this db position obj-id] db)
+    (on-move [this db position] db))
 
 ;;
 ;; Create path tool
@@ -59,13 +67,13 @@
     ITool
     (on-selected [this db]
       ;; Create our state
-      (re-frame/dispatch [:db/create-make-path-tool-state]))
+      (assoc db ::d/tool-state nil))
 
-    (on-unselected [this db] (log/info "Make circle tool unselected")
+    (on-unselected [this db] (log/info "Make path tool unselected")
       ;; Destroy our state
-      (re-frame/dispatch [:db/remove-tool-state]))
+      (assoc db ::d/tool-state nil))
 
-    (on-click [this db position]
+    (on-click [this db position _]
       (let [path-id (get-in db [:db/tool-state ::d/id]),
             next-object-id  (::d/next-object-id db)]
         (if (nil? path-id)
@@ -82,7 +90,7 @@
             ; Add a new vertex
             (update-in db [::d/objects path-id ::d/vertices] conj {::d/vertex-type :no-handles ::d/position position}))))
 
-    (on-double-click [this db position]
+    (on-double-click [this db position _]
       ;; If we were creating a path; stop.
       (let [path-id (get-in db [:db/tool-state ::d/id]),]
         (if (nil? path-id)
@@ -91,52 +99,32 @@
 
     ;; If we have a stub-path in progress then moving the mouse should move the
     ;; last point.
-    (on-move [this db dpos]
+    (on-move [this db position]
       (let [path-id (get-in db [:db/tool-state ::d/id])]
         (if (nil? path-id) db  ; Do nothing))))
             ;; Move the last point
-            (update-in db [::d/objects path-id ::d/vertices] with-last-point-moved dpos)))))
+            (update-in db [::d/objects path-id ::d/vertices] with-last-point-moved position)))))
 
+;;
+;; Create circle tool
+;;
+
+(defrecord DeleteObject []
+    ITool
+    (on-selected [this db] (log/info "Delete object tool selected") db)
+    (on-unselected [this db] (log/info "Delete object tool unselected") db)
+
+    (on-click [this db position obj-id]
+      (println "HELLO" obj-id)
+      (if-not obj-id db (update db ::d/objects dissoc obj-id)))
+
+    (on-double-click [this db position obj-id] db)
+    (on-move [this db position] db))
 
 ;;
 ;; A map of all our tools
 ;;
 
 (def tools-map {:tools/make-circle (MakeCircle.)
-                :tools/make-path (MakePath.)})
-
-;; The tools translate low-level events, such as mouse down on object, into
-;; higher level events, such as delete object or move object.
-;;
-
-;(defprotocol ITool
-;  "A protocol for tools"
-;  (on-mouse-down-on-object [this object-type object-id client-position] "Handle mouse down event on an object")
-;  (on-mouse-down-on-background [this client-position] "Handle mouse down event on the background")
-;  (on-mouse-up-on-object [this object-type object-id] "Handle mouse up event on an object")
-;  (on-mouse-up-on-background [this] "Handle mouse up event on the background")
-;  (on-mouse-out-of-object [this object-type object-id] "Handle mouse out event on an object")
-;  (on-mouse-out-of-background [this] "Handle mouse out event on the background"))
-;
-;(defrecord MoveTool []
-;    ITool
-;    (on-mouse-down-on-object [this object-type object-id client-position]
-;      (re-frame.core/dispatch [:select-object object-type object-id client-position])
-;
-;    (on-mouse-down-on-background [this] (println "Move tool ignoring mouse down on background"))
-;    (on-mouse-up-on-object [this object-type object-id client-position] (println "Delete tool ignoring mouse up on object"))
-;    (on-mouse-up-on-background [this] (println "Delete tool ignoring mouse up on background"))
-;    (on-mouse-out-of-object [this object-type object-id] (println "Delete tool ignoring mouse out of object"))
-;    (on-mouse-out-of-background [this] (println "Delete tool ignoring mouse out of background")))
-
-
-;(defrecord DeleteTool []
-;    ITool
-;    (on-mouse-down-on-object [this object-type object-id client-position]
-;      (re-frame.core/dispatch [:delete object-type object-id])
-;
-;    (on-mouse-down-on-background [this client-position] (println "Delete tool ignoring mouse down on background"))
-;    (on-mouse-up-on-object [this object-type object-id] (println "Delete tool ignoring mouse up on object"))
-;    (on-mouse-up-on-background [this] (println "Delete tool ignoring mouse up on background"))
-;    (on-mouse-out-of-object [this object-type object-id] (println "Delete tool ignoring mouse out of object"))
-;    (on-mouse-out-of-background [this] (println "Delete tool ignoring mouse out of background")))
+                :tools/make-path (MakePath.)
+                :tools/object-delete (DeleteObject.)})
