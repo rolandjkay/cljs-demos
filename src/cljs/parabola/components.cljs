@@ -34,39 +34,21 @@
               (handler target-id move-vec)
               (log/info "Component ignoring 'dragmove' event")))))))
 
-;  (some-> "#canvas"
-;    (js/interact {:context (reagent/dom-node this)})
-;    (.on "doubletap"
-;      (fn [e]
-;        (let [position [(.-offsetX e) (.-offsetY e)]
-;              handler  (:canvas-doubletap handlers))
-;          (if handler
-;              (handler position)
-;              (log/info "Component ignoring 'doubletap' event")))))
-;    (.on "tap"
-;      (fn [e]
-;        (let [position [(.-offsetX e) (.-offsetY e)]
-;              handler  (:canvas-tap handlers))
-;          (if handler
-;              (handler position)
-;              (log/info "Component ignoring 'tap' event")))))
-;    (.on "move"
-;      (fn [e]
-;        (let [position [(.-offsetX e) (.-offsetY e)]
-;              handler  (:canvas-move handlers))
-;          (if handler
-;              (handler position)
-;              (log/info "Component ignoring 'move' event")))))))
-
 
 (defn make-draggable
   "A HOC which endows a simple component with selection and drag of SVG elements"
   [wrapped-component event-handlers]
   {:pre [(valid? (s/map-of keyword? fn?) event-handlers)]}
 
-  (let [top-left             (atom [0 0])
-        click-handler         (:canvas-click event-handlers)
-        double-click-handler (:canvas-double-click event-handlers)]
+  (let [top-left (atom [0 0]),
+        ; Substitute "do-nothing" handler if missing.
+        {:keys [canvas-click canvas-double-click canvas-move]
+         :or {canvas-click (fn [position] (log/info "Missing canvas-click handler")),
+              canvas-double-click (fn [position] (log/info "Missing canvas-double-click handler")),
+              canvas-move (fn [position] (log/info "Missing canvas-move handler"))}}
+        event-handlers,
+        event->position (fn [e] (pos-diff [(.-clientX e) (.-clientY e)] @top-left))]
+
     (reagent/create-class
       {:component-did-mount
         (fn [this]
@@ -89,10 +71,10 @@
                                     (<! (timeout 300))
                                     (case @click-count
                                       0 nil
-                                      ; Call event handlers, if defined
-                                      1 (if click-handler (click-handler position))
-                                      (if double-click-handler (double-click-handler position)))
-                                    (reset! click-count 0))))}
+                                      1 (canvas-click position)
+                                      (canvas-double-click position))
+                                    (reset! click-count 0))))
+                    :on-mouse-move #(-> % event->position canvas-move)}
                [wrapped-component]]))})))
 
 ;; A component which, given one or more objects, allow the user to edit them.
@@ -135,21 +117,6 @@
         [:svg#canvas
               {:width (get props :width "800"),
                :height (get props :height "800"),}
-      ;         :on-click (fn [e]
-      ;                    (swap! foo inc)
-      ;                    (go
-      ;                      (<! (timeout 5000))
-      ;                      (case @foo
-      ;                        0 (println "NOTHING")
-      ;                        1 (println "CLICK")
-      ;                        (println "DOUBLECLICK")
-      ;                      (reset! foo 0)}
-            ;   :on-click
-            ;   (fn svg-canvas-on-click-handler [e]
-            ;     (let [rect (-> e .-target .getBoundingClientRect)];)
-            ;       (re-frame/dispatch
-            ;         [:canvas/click [(- (.-clientX e) (.-left rect))
-            ;                         (- (.-clientY e) (.-top rect))}
           (map obj/object->svg @(re-frame/subscribe [:subs/objects]))])
 
       ;; Event handlers
