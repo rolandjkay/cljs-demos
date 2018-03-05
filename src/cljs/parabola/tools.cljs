@@ -2,7 +2,7 @@
   (:require [re-frame.core :as re-frame]
             [parabola.log :as log]
             [parabola.domain :as d]
-            [parabola.utils :refer [pos-add valid?]]
+            [parabola.utils :refer [pos-add valid? map-function-on-map-vals]]
             [clairvoyant.core :refer-macros [trace-forms]]
             [re-frame-tracer.core :refer [tracer]]))
 
@@ -46,7 +46,7 @@
   [id position]
   {::d/object-type :path,
    ::d/id id,
-   ::d/display-anchors (into (vector) (range 100)),
+   ::d/display-anchors :all,
    ::d/vertices
    [
      {::d/vertex-type :no-handles ::d/position position}
@@ -111,8 +111,14 @@
 
 (defrecord DeleteObject []
     ITool
-    (on-selected [this db] (log/info "Delete object tool selected") db)
-    (on-unselected [this db] (log/info "Delete object tool unselected") db)
+    (on-selected [this db]
+      ; Display all anchors
+      (update db ::d/objects map-function-on-map-vals #(assoc % ::d/display-anchors :all)))
+
+    (on-unselected [this db]
+      ; Hide all anchors
+      (update db ::d/objects map-function-on-map-vals #(dissoc % ::d/display-anchors)))
+
 
     (on-click [this db position obj-id]
       (println "HELLO" obj-id)

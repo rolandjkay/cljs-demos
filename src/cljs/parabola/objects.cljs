@@ -225,12 +225,28 @@
 
     [[1 :before] [2 :after] [1 :after]] -> #{:before :after}
   "
-  {:pre [(s/valid? int? handle-index)
-         (s/valid? ::d/selected-handles selected-handles)]}
   [anchor-index selected-handles]
+  {:pre [(s/valid? int? anchor-index)
+         (s/valid? ::d/selected-handles selected-handles)]}
+
   (into #{}
     (map second
          (filter #(= anchor-index (first %)) selected-handles))))
+
+(defn- anchor-selected?
+  "Is the anchor with the given index selected in 'selected-anchors'?
+   'selected-anchors' can be nil, in which case we return false'
+  "
+  [anchor-index selected-anchors]
+  {:pre [(valid? int? anchor-index)
+         (valid? (s/nilable (s/or :all #{:all},
+                                  :indicies (s/coll-of int? :kind vector?)))
+                 selected-anchors)]
+   ; Double check that return is definitely false if input is nil.
+   :post [(if (nil? selected-anchors) (not %) true)]}
+
+  (or (= :all selected-anchors)
+      (value-in-collection? anchor-index selected-anchors)))
 
 (defmethod object->svg :path [path] {:pre [(s/valid? ::d/path path)]}
   [:g {:id (::d/id path) :key (::d/id path)}
@@ -249,10 +265,10 @@
     (keep-indexed
       (fn [i vertex]
         ; if 'i' is in 'display-anchors'
-        (if (value-in-collection? i (::d/display-anchors path))
+        (if (anchor-selected? i (::d/display-anchors path))
             (vertex-anchor->svg vertex
                                 (str (::d/id path) "/" i)
-                                (value-in-collection? i (::d/selected-anchors path)))))
+                                (anchor-selected? i (::d/selected-anchors path)))))
       (::d/vertices path))
 
     ; Same for handles
@@ -268,6 +284,7 @@
 
 (defmethod object->svg :circle [circle] {:pre [(valid? ::d/circle circle)]}
   (let [{centre ::d/position, radial ::d/radial, id ::d/id} circle]
+
     [:g {:id id :key id}
       [:circle {:fill "none"
                 :stroke "black"
@@ -275,17 +292,17 @@
                 :cy (centre 1)
                 :r (vector-length radial)}]
 
-      (if (value-in-collection? 0 (::d/display-anchors circle))
+      (if (anchor-selected? 0 (::d/display-anchors circle))
         (vertex-anchor->svg
           {::d/vertex-type :no-handles ::d/position centre}
           (str id "/0")
-          (value-in-collection? 0 (::d/selected-anchors circle))))
+          (anchor-selected? 0 (::d/selected-anchors circle))))
 
-      (if (value-in-collection? 1 (::d/display-anchors circle))
+      (if (anchor-selected? 1 (::d/display-anchors circle))
         (vertex-anchor->svg
           {::d/vertex-type :no-handles ::d/position (pos-add centre radial)}
           (str id "/1")
-          (value-in-collection? 1 (::d/selected-anchors circle))))]))
+          (anchor-selected? 1 (::d/selected-anchors circle))))]))
 
 ;;; move-anchors ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

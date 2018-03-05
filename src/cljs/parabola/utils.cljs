@@ -34,3 +34,11 @@
 (defn vector-length [vec] {:pre (valid? ::d/position vec)}
   (let [x (vec 0), y (vec 1)]
     (js.Math.sqrt (+ (* x x) (* y y)))))
+
+(defn map-function-on-map-vals
+  "Build a new map by mapping f over the values of m"
+  [m f]
+  (reduce
+    (fn apply-to-map-value [altered-map [k v]]
+      (assoc altered-map k (f v)))
+    {} m))

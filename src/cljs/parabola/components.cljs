@@ -61,21 +61,21 @@
 
        :display-name  "draggable-component"  ;; for more helpful warnings & errors
        :reagent-render
-         (fn make-draggable-render []
-           (let [click-count (atom 0)]
-             [:div {:on-click (fn [e]
-                                (swap! click-count inc)
-                                (let [position (event->position e)
-                                      target-id (event->obj-id e)]
-                                  (go
-                                    (<! (timeout 300))
-                                    (case @click-count
-                                      0 nil
-                                      1 (canvas-click position target-id)
-                                      (canvas-double-click position target-id))
-                                    (reset! click-count 0))))
-                    :on-mouse-move #(-> % event->position canvas-move)}
-               [wrapped-component]]))})))
+        (fn make-draggable-render []
+          (let [click-count (atom 0)]
+            [:div {:on-click (fn [e]
+                               (swap! click-count inc)
+                               (let [position (event->position e)
+                                     target-id (event->obj-id e)]
+                                 (go
+                                   (<! (timeout 300))
+                                   (case @click-count
+                                     0 nil
+                                     1 (canvas-click position target-id)
+                                     (canvas-double-click position target-id))
+                                   (reset! click-count 0))))
+                   :on-mouse-move #(-> % event->position canvas-move)}
+              [wrapped-component]]))})))
 
 ;; A component which, given one or more objects, allow the user to edit them.
 ;;

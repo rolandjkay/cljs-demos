@@ -49,7 +49,10 @@
 ;; Vectors of the anchors/handles to visualize
 ;; - These contain a list of IDs which the render function is expected to
 ;;   display.
-(s/def ::display-anchors (s/coll-of int? :kind vector?))
+(s/def ::display-anchors  (s/or
+                            :all #{:all}
+                            :indicies (s/coll-of int? :kind vector?)))
+
 (s/def ::display-handles (s/coll-of int? :kind vector?))
 
 (s/def ::handle-selector (s/tuple int? #{:before :after}))
