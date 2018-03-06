@@ -1,6 +1,7 @@
 (ns parabola.objects-test
   (:require [clojure.test :refer [deftest testing is are run-tests]]
-            [parabola.objects :as obj]
+            [parabola.objects :as objects]
+            [parabola.utils :as utils]
             [parabola.domain :as d]
             [clojure.spec.alpha :as s]))
 
@@ -8,7 +9,7 @@
 (deftest path->svg-test
   (testing "path->svg (linear)"
     (let [[g_tag g_props [tag props & rest]]
-          (obj/object->svg
+          (objects/object->svg
             {::d/object-type :path
              ::d/id 0
              ::d/vertices
@@ -23,7 +24,7 @@
   ;; as there is nothing on the LHS.
   (testing "path->svg (symmetric corners)"
     (let [[g_tag g_props [tag props & rest]]
-          (obj/object->svg
+          (objects/object->svg
             {::d/object-type :path
              ::d/id 0
              ::d/vertices
@@ -37,7 +38,7 @@
 
   (testing "path->svg (asymmetric corners)"
     (let [[g_tag g_props [tag props & rest]]
-          (obj/object->svg
+          (objects/object->svg
             {::d/object-type :path
              ::d/id 0
              ::d/vertices
@@ -53,7 +54,7 @@
 (deftest circle->svg-test
   (testing "circle->svg"
     (let [[g_tag g_props [tag props & rest]]
-          (obj/object->svg
+          (objects/object->svg
             {::d/object-type :circle
              ::d/id 999
              ::d/position [100 100]
@@ -63,3 +64,35 @@
       (is (= (str (:cx props)) "100"))
       (is (= (str (:cy props)) "100"))
       (is (= (str (:r props)) "50")))))
+
+
+(deftest moved-object-test
+  (testing "moved-object on circle"
+    (let [moved-obj
+          (objects/moved-object
+            {::d/object-type :circle
+             ::d/id 999
+             ::d/position [100 100]
+             ::d/radial [50 0]}
+            (partial utils/pos-add [10 10]))]
+      (is (= (::d/position moved-obj) [110 110]))
+      (is (= (::d/id moved-obj) 999))
+      (is (= (::d/radial moved-obj) [50 0]))))
+
+  (testing "moved-object on path"
+    (let [moved-obj
+          (objects/moved-object
+            {::d/object-type :path
+             ::d/id 999
+             ::d/vertices
+             [
+               {
+                 ::d/vertex-type :no-handles
+                 ::d/position [100 100]}
+               {
+                 ::d/vertex-type :no-handles
+                 ::d/position [200 200]}]}
+            (partial utils/pos-add [10 10]))]
+      (println moved-obj)
+      (is (= (get-in moved-obj [::d/vertices 0 ::d/position] [110 110])))
+      (is (= (get-in moved-obj [::d/vertices 1 ::d/position] [210 210]))))))

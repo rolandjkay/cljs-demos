@@ -2,6 +2,7 @@
   (:require [re-frame.core :as re-frame]
             [parabola.log :as log]
             [parabola.domain :as d]
+            [parabola.objects :as objects]
             [parabola.utils :refer [pos-add valid? map-function-on-map-vals]]
             [clairvoyant.core :refer-macros [trace-forms]]
             [re-frame-tracer.core :refer [tracer]]))
@@ -13,7 +14,8 @@
   (on-unselected [this db] "The tool was unselected")
   (on-click [this db position obj-id] "The canvas was clicked")
   (on-double-click [this db position obj-id] "The canvas was double clicked")
-  (on-move [this db dpos]))
+  (on-move [this db position] "The mouse moved over the canvas")
+  (on-drag [this db dpos obj-id] "An object was dragged"))
 
 
 ;;
@@ -106,7 +108,7 @@
             (update-in db [::d/objects path-id ::d/vertices] with-last-point-moved position)))))
 
 ;;
-;; Create circle tool
+;; Delete object tool
 ;;
 
 (defrecord DeleteObject []
@@ -121,11 +123,41 @@
 
 
     (on-click [this db position obj-id]
-      (println "HELLO" obj-id)
       (if-not obj-id db (update db ::d/objects dissoc obj-id)))
 
     (on-double-click [this db position obj-id] db)
     (on-move [this db position] db))
+
+
+;;
+;; Move object tool
+;;
+
+
+(defrecord MoveObject []
+    ITool
+    (on-selected [this db]
+      ; Display all anchors
+      (update db ::d/objects map-function-on-map-vals #(assoc % ::d/display-anchors :all)))
+
+    (on-unselected [this db]
+      ; Hide all anchors
+      (update db ::d/objects map-function-on-map-vals #(dissoc % ::d/display-anchors)))
+
+    (on-click [this db position obj-id] db)
+
+    (on-double-click [this db position obj-id] db)
+    (on-move [this db position] db)
+
+    (on-drag [this db dpos obj-id]
+      ;; XXX We are inconsistent; on-click takes a simple object ID (2) whereas
+      ;;     on-drag takes a complete path [1 2 3]
+      ;; XXX We should always use the path.
+      (println dpos)
+      (update-in
+        db
+        [::d/objects (first obj-id)]
+        objects/moved-object (partial pos-add dpos))))
 
 ;;
 ;; A map of all our tools
@@ -133,4 +165,5 @@
 
 (def tools-map {:tools/make-circle (MakeCircle.)
                 :tools/make-path (MakePath.)
-                :tools/object-delete (DeleteObject.)})
+                :tools/object-delete (DeleteObject.)
+                :tools/object-move (MoveObject.)})

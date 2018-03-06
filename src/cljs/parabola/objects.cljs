@@ -4,7 +4,8 @@
 (ns parabola.objects
   (:require [parabola.domain :as d]
             [parabola.utils :refer [value-in-collection? pairs pos-add pos-diff
-                                    split-id valid? vector-length]]
+                                    split-id valid? vector-length
+                                    map-function-on-map-vals]]
             [clojure.spec.alpha :as s]
             [clojure.string :as str]
             [parabola.log :as log]))
@@ -414,8 +415,35 @@
       (log/warn "Circle ignoring invalid node ID"))))
 
 
-  ;(let [anchor-id (first node-id)]
-  ;  (println circle)
-  ;  (if (or (= anchor-id 0) (= anchor-id 1))
-  ;      (update-in circle [::d/circle-vertices anchor-id ::d/position] transform)
-  ;      (log/warn "Circle ignoring invalid node ID")})
+;;; moved-object multi-method ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; If we normalized all of our objects so that they had a ::d/position
+;; key and all verticies were relative to that (like a circle) then we
+;; could move them with a generic function and we wouldn't need this mult
+(defmulti
+  moved-object
+  ; Dispatch function
+  (fn
+    [obj]
+    {:pre [(valid? ::d/object obj)]}
+    (::d/object-type obj)))
+
+;;; moved-object [PATH] ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; This has to handle anchors and 'handles'.
+(defmethod moved-object :path
+  [path transform]
+;  {:pre [(valid? ::d/path path)]  <-- these are ignored by defmethod
+;   :post [(valid? ::d/path path)]]
+  (let [transform-vertex-position (fn [v] (update v ::d/position transform))]
+    (update path ::d/vertices #(mapv transform-vertex-position %))))
+
+;;; moved-object [CIRCLE] ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defmethod moved-object :circle
+  [circle transform]
+;  {:pre [(valid? ::d/circle circle)] <-- these are ignored by defmethod
+;   :post [(valid? ::d/circle circle)]]
+
+  (update circle ::d/position transform))

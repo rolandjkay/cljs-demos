@@ -97,7 +97,8 @@
 (s/def ::selected-tool #{:tools/make-circle
                          :tools/make-path
                          :tools/node-move
-                         :tools/object-delete})
+                         :tools/object-delete
+                         :tools/object-move})
 
 (s/def ::null-move-tool-state (s/or :none #{::none}
                                     :object (s/cat :object-type   #{::path}

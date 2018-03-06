@@ -139,9 +139,9 @@
       {
        ;; Drag handler
        :dragmove
-       (fn [target-id move-vec])
-   ;      {:pre [(valid? ::d/dom-id target-id) (valid? ::d/position move-vec)]}
-   ;      (re-frame/dispatch [:canvas/dragmove (split-id target-id) move-vec]))))
+       (cljs.core/fn [target-id move-vec]
+         {:pre [(valid? ::d/dom-id target-id) (valid? ::d/position move-vec)]}
+         (re-frame/dispatch [:canvas/drag move-vec (split-id target-id)]))
 
        ;; move handler
        :canvas-move

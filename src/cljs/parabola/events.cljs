@@ -61,3 +61,11 @@
     (let [tool-kw (::d/selected-tool db),
           tool  (tool-kw tools/tools-map)]
       (tools/on-move tool db position))))
+
+(re-frame/reg-event-db
+  :canvas/drag
+  (cljs.core/fn [db [_ dpos obj-id]] {:pre [(valid? ::d/db db)], :post [(valid? ::d/db %)]}
+    ;; Let the currently-selected tool handle.
+    (let [tool-kw (::d/selected-tool db),
+          tool  (tool-kw tools/tools-map)]
+      (tools/on-drag tool db dpos obj-id))))
