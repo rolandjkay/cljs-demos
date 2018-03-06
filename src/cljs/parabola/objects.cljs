@@ -4,7 +4,7 @@
 (ns parabola.objects
   (:require [parabola.domain :as d]
             [parabola.utils :refer [value-in-collection? pairs pos-add pos-diff
-                                    split-id valid? vector-length
+                                    str->id id->str valid? vector-length
                                     map-function-on-map-vals]]
             [clojure.spec.alpha :as s]
             [clojure.string :as str]
@@ -128,12 +128,13 @@
 
 (defn- vertex-anchor->svg
   "Render an anchor"
-  [vertex id selected]
+  [vertex id-path selected]
   {:pre [(valid? ::d/vertex vertex)
+         (valid? ::d/id-path id-path)
          (valid? boolean? selected)]}
 
   (let [[x y] (::d/position vertex)]
-    [:g.drag-me {:key (str id) :id (str id)}
+    [:g.drag-me {:key (id->str id-path) :id (id->str id-path)}
       [:polygon {:fill  (if selected "green" "black")
                  :points (str (- x 3) "," y " "
                               x "," (+ y 3) " "
@@ -143,13 +144,19 @@
 
 (defn- handle->svg
   "Render a single handle"
-  [id selected anchor-position relative-handle-position]
+  [id-path selected anchor-position relative-handle-position]
   {:pre [(s/valid? ::d/position anchor-position)
          (s/valid? ::d/position relative-handle-position)]}
-  (let [handle-position (pos-add anchor-position relative-handle-position)]
-    [:g.drag-me {:key (str id) :id (str id)}
+  (let [handle-position (pos-add anchor-position relative-handle-position)
+        ; Compose the IDs of the anchor and handle. We attach the anchor
+        ; ID to the dashed lines; otherwise, it's hard to select the anchor
+        anchor-id (id->str (butlast id-path))
+        handle-id (id->str id-path)]
+
+    [:g.drag-me {:key (str handle-id) :id (str handle-id)}
       ;; Dashed line from path to handle
-      [:path {:fill "none"
+      [:path {:id anchor-id
+              :fill "none"
               :stroke "black"
               :stroke-dasharray "5,5"
               :d (str/join " "
@@ -157,7 +164,8 @@
                     (position->svg handle-position "L")])}]
 
       ;; The handle
-      [:circle {:cx (handle-position 0) :cy (handle-position 1) :r "5"
+      [:circle {:id handle-id
+                :cx (handle-position 0) :cy (handle-position 1) :r "5"
                 :fill (if selected "green" "black")}]]))
 
 
@@ -165,52 +173,52 @@
   "Render the handles of a vertex"
   {:pre [(s/valid? ::d/vertex vertex)
          (s/valid? (s/coll-f #{:before :after} :kind set?) selection)]}
-  [vertex id selection]
+  [vertex path-id selection]
   (let [position (::d/position vertex)
         type  (::d/vertex-type vertex)]
     (case type
       :no-handles nil
       :handle-before
-        (handle->svg (str id "/" 0)
+        (handle->svg (conj path-id 0)
                      (:before selection)
                      position
                      (polar->cartesian [(- (::d/before-length vertex)) (::d/before-angle vertex)]))
 
       :handle-after
-        (handle->svg (str id "/" 1)
+        (handle->svg (conj path-id 1)
                      (:after selection)
                      position
                      (polar->cartesian [(::d/after-length vertex) (::d/after-angle vertex)]))
 
       :symmetric
         (list
-          (handle->svg (str id "/" 0)
+          (handle->svg (conj path-id 0)
                        (:before selection)
                        position
                        (polar->cartesian [(- (::d/length vertex)) (::d/angle vertex)]))
-          (handle->svg (str id "/" 1)
+          (handle->svg (conj path-id 1)
                        (:after selection)
                        position
                        (polar->cartesian [(::d/length vertex) (::d/angle vertex)])))
 
       :semi-symmetric
       (list
-        (handle->svg (str id "/" 0)
+        (handle->svg (conj path-id 0)
                      (:before selection)
                      position
                      (polar->cartesian [(- (::d/before-length vertex)) (::d/angle vertex)]))
-        (handle->svg (str id "/" 1)
+        (handle->svg (conj path-id 1)
                      (:after selection)
                      position
                      (polar->cartesian [(::d/after-length vertex) (::d/angle vertex)])))
 
       :asymmetric
       (list
-        (handle->svg (str id "/" 0)
+        (handle->svg (conj path-id 0)
                      (:before selection)
                      position
                      (polar->cartesian [(- (::d/before-length vertex)) (::d/before-angle vertex)]))
-        (handle->svg (str id "/" 1)
+        (handle->svg (conj path-id 1)
                      (:after selection)
                      position
                      (polar->cartesian [(::d/after-length vertex) (::d/after-angle vertex)]))))))
@@ -227,27 +235,28 @@
     [[1 :before] [2 :after] [1 :after]] -> #{:before :after}
   "
   [anchor-index selected-handles]
-  {:pre [(s/valid? int? anchor-index)
-         (s/valid? ::d/selected-handles selected-handles)]}
+  {:pre [(valid? int? anchor-index)
+         (valid? (s/nilable ::d/selected-handles) selected-handles)]}
 
   (into #{}
     (map second
          (filter #(= anchor-index (first %)) selected-handles))))
 
-(defn- anchor-selected?
-  "Is the anchor with the given index selected in 'selected-anchors'?
-   'selected-anchors' can be nil, in which case we return false'
+(defn- node-selected?
+  "Is the node, anchor or handle, with the given index selected in
+   'selected-anchors'? 'selected-anchors' can be nil, in which case we return
+   false
   "
-  [anchor-index selected-anchors]
+  [anchor-index selected-nodes]
   {:pre [(valid? int? anchor-index)
          (valid? (s/nilable (s/or :all #{:all},
                                   :indicies (s/coll-of int? :kind vector?)))
-                 selected-anchors)]
+                 selected-nodes)]
    ; Double check that return is definitely false if input is nil.
-   :post [(if (nil? selected-anchors) (not %) true)]}
+   :post [(if (nil? selected-nodes) (not %) true)]}
 
-  (or (= :all selected-anchors)
-      (value-in-collection? anchor-index selected-anchors)))
+  (or (= :all selected-nodes)
+      (value-in-collection? anchor-index selected-nodes)))
 
 (defmethod object->svg :path [path] {:pre [(s/valid? ::d/path path)]}
   [:g {:id (::d/id path) :key (::d/id path)}
@@ -266,18 +275,18 @@
     (keep-indexed
       (fn [i vertex]
         ; if 'i' is in 'display-anchors'
-        (if (anchor-selected? i (::d/display-anchors path))
+        (if (node-selected? i (::d/display-anchors path))
             (vertex-anchor->svg vertex
-                                (str (::d/id path) "/" i)
-                                (anchor-selected? i (::d/selected-anchors path)))))
+                                [(::d/id path) i]
+                                (node-selected? i (::d/selected-anchors path)))))
       (::d/vertices path))
 
     ; Same for handles
     (keep-indexed
       (fn [i vertex]
-        (if (value-in-collection? i (::d/display-handles path))
+        (if (node-selected? i (::d/display-handles path))
           (vertex-handles->svg vertex
-                               (str (::d/id path) "/" i)
+                               [(::d/id path) i]
                                (selection-for-anchor i (::d/selected-handles path)))))
       (::d/vertices path))])
 
@@ -293,17 +302,17 @@
                 :cy (centre 1)
                 :r (vector-length radial)}]
 
-      (if (anchor-selected? 0 (::d/display-anchors circle))
+      (if (node-selected? 0 (::d/display-anchors circle))
         (vertex-anchor->svg
           {::d/vertex-type :no-handles ::d/position centre}
-          (str id "/0")
-          (anchor-selected? 0 (::d/selected-anchors circle))))
+          [id 0]
+          (node-selected? 0 (::d/selected-anchors circle))))
 
-      (if (anchor-selected? 1 (::d/display-anchors circle))
+      (if (node-selected? 1 (::d/display-anchors circle))
         (vertex-anchor->svg
           {::d/vertex-type :no-handles ::d/position (pos-add centre radial)}
-          (str id "/1")
-          (anchor-selected? 1 (::d/selected-anchors circle))))]))
+          [id 1]
+          (node-selected? 1 (::d/selected-anchors circle))))]))
 
 ;;; move-anchors ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

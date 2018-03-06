@@ -6,7 +6,7 @@
   (:require [cljs.core.async :refer [<! timeout]]
             [parabola.objects :as obj]
             [parabola.domain :as d]
-            [parabola.utils :refer [pos-add pos-diff split-id valid?]]
+            [parabola.utils :refer [pos-add pos-diff str->id valid?]]
             [clojure.spec.alpha :as s]
             [reagent.core :as reagent]
             [re-frame.core :as re-frame]
@@ -99,7 +99,7 @@
       {
        :dragmove
        (fn [target-id move-vec] {:pre [(s/valid? ::d/dom-id target-id)]}
-         (let [[obj-index & rest] (split-id target-id)]
+         (let [[obj-index & rest] (str->id target-id)]
            (swap! objects
              update obj-index ; <- @objects gets passed as first arg; so this runs func below on ith element on objects
              obj/object-with-node-moved rest (partial pos-add move-vec))))})))
@@ -141,7 +141,7 @@
        :dragmove
        (cljs.core/fn [target-id move-vec]
          {:pre [(valid? ::d/dom-id target-id) (valid? ::d/position move-vec)]}
-         (re-frame/dispatch [:canvas/drag move-vec (split-id target-id)]))
+         (re-frame/dispatch [:canvas/drag move-vec (str->id target-id)]))
 
        ;; move handler
        :canvas-move

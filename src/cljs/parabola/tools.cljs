@@ -8,6 +8,28 @@
             [re-frame-tracer.core :refer [tracer]]))
 
 
+;;
+;; Functions used by lots of tools
+;;
+
+(defn- show-all-anchors [db]
+  (update db ::d/objects map-function-on-map-vals #(assoc % ::d/display-anchors :all)))
+
+(defn- hide-all-anchors [db]
+  (update db ::d/objects map-function-on-map-vals #(dissoc % ::d/display-anchors)))
+
+(defn- show-all-handles [db]
+  (println "HELLO")
+  (update db ::d/objects map-function-on-map-vals #(assoc % ::d/display-handles :all)))
+
+(defn- hide-all-handles [db]
+  (update db ::d/objects map-function-on-map-vals #(dissoc % ::d/display-handles)))
+
+
+;;
+;; ITool protocol
+;;
+
 (defprotocol ITool
   "A protocol for tools that re-frame uses to forward interactions"
   (on-selected [this db] "The tool was selected")
@@ -37,7 +59,9 @@
           (update ::d/next-object-id inc))))
 
     (on-double-click [this db position obj-id] db)
-    (on-move [this db position] db))
+    (on-move [this db position] db)
+    (on-drag [this db dpos obj-id] db))
+
 
 ;;
 ;; Create path tool
@@ -105,7 +129,9 @@
       (let [path-id (get-in db [:db/tool-state ::d/id])]
         (if (nil? path-id) db  ; Do nothing))))
             ;; Move the last point
-            (update-in db [::d/objects path-id ::d/vertices] with-last-point-moved position)))))
+            (update-in db [::d/objects path-id ::d/vertices] with-last-point-moved position))))
+
+    (on-drag [this db dpos obj-id] db))
 
 ;;
 ;; Delete object tool
@@ -114,19 +140,18 @@
 (defrecord DeleteObject []
     ITool
     (on-selected [this db]
-      ; Display all anchors
-      (update db ::d/objects map-function-on-map-vals #(assoc % ::d/display-anchors :all)))
+      (show-all-anchors db))
 
     (on-unselected [this db]
-      ; Hide all anchors
-      (update db ::d/objects map-function-on-map-vals #(dissoc % ::d/display-anchors)))
-
+      (hide-all-anchors db))
 
     (on-click [this db position obj-id]
       (if-not obj-id db (update db ::d/objects dissoc obj-id)))
 
     (on-double-click [this db position obj-id] db)
-    (on-move [this db position] db))
+    (on-move [this db position] db)
+    (on-drag [this db dpos obj-id] db))
+
 
 
 ;;
@@ -137,12 +162,10 @@
 (defrecord MoveObject []
     ITool
     (on-selected [this db]
-      ; Display all anchors
-      (update db ::d/objects map-function-on-map-vals #(assoc % ::d/display-anchors :all)))
+      (show-all-anchors db))
 
     (on-unselected [this db]
-      ; Hide all anchors
-      (update db ::d/objects map-function-on-map-vals #(dissoc % ::d/display-anchors)))
+      (hide-all-anchors db))
 
     (on-click [this db position obj-id] db)
 
@@ -153,11 +176,41 @@
       ;; XXX We are inconsistent; on-click takes a simple object ID (2) whereas
       ;;     on-drag takes a complete path [1 2 3]
       ;; XXX We should always use the path.
-      (println dpos)
       (update-in
         db
         [::d/objects (first obj-id)]
         objects/moved-object (partial pos-add dpos))))
+
+
+;;
+;; Move node (anchor or handle) tool
+;;
+
+(defrecord MoveNode []
+    ITool
+    (on-selected [this db]
+      (-> db show-all-anchors show-all-handles))
+
+    (on-unselected [this db]
+      (-> db hide-all-anchors hide-all-handles))
+
+    (on-click [this db position obj-id] db)
+
+    (on-double-click [this db position obj-id] db)
+    (on-move [this db position] db)
+
+    (on-drag [this db dpos obj-id]
+      ;; XXX We are inconsistent; on-click takes a simple object ID (2) whereas
+      ;;     on-drag takes a complete path [1 2 3]
+      ;; XXX We should always use the path.
+      (let [[obj-index & rest] obj-id]
+        (cond
+          (not (int? obj-index)) (do (log/warn "Invalid object index") db)
+          (empty? rest)          db
+          :else
+          (update-in
+            db [::d/objects obj-index]
+            objects/object-with-node-moved rest (partial pos-add dpos))))))
 
 ;;
 ;; A map of all our tools
@@ -166,4 +219,5 @@
 (def tools-map {:tools/make-circle (MakeCircle.)
                 :tools/make-path (MakePath.)
                 :tools/object-delete (DeleteObject.)
-                :tools/object-move (MoveObject.)})
+                :tools/object-move (MoveObject.)
+                :tools/node-move (MoveNode.)})

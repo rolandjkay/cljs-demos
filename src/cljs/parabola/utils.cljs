@@ -22,10 +22,15 @@
   [x coll]
   (boolean (some #(= x %) coll)))
 
-(defn- split-id
+(defn- str->id
   "Split ID like 1/2/3 to [1, 2, 3]"
+  [id-str]
+  (mapv int (clojure.string/split id-str #"/")))
+
+(defn- id->str
+  "Convert a path-id (e.g. [1 2 3]) to a string form SVG -> \"1/2/3\""
   [id]
-  (mapv int (clojure.string/split id #"/")))
+  (clojure.string/join "/" id))
 
 ;; Add and subtract positions
 (def pos-diff (partial mapv -))
