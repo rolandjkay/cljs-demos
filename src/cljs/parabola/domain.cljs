@@ -97,6 +97,7 @@
 (s/def ::selected-tool #{:tools/make-circle
                          :tools/make-path
                          :tools/node-move
+                         :tools/node-delete
                          :tools/object-delete
                          :tools/object-move})
 

@@ -127,11 +127,10 @@
       ;;   be in make-draggable
       (fn canvas-event->obj-id [event]
         (loop [e (.-target event)]
-          (let [id (.-id e)
-                id-int (js/parseInt id)]
+          (let [id (.-id e)]
             (cond
               (= id "canvas")            nil ,   ; <- give up when we get to the canvas.
-              (not (js/isNaN id-int))    id-int, ; parseInt parses "4/1/2" to 4
+              (s/valid? ::d/dom-id id)   (str->id id),
               (nil? (.-parentElement e)) nil ,   ; <- or if we get to the DOM root!
               :else                      (recur (.-parentElement e))))))
 
@@ -150,16 +149,16 @@
 
        ;; tap handler
        :canvas-click
-       (cljs.core/fn [position obj-id]
+       (cljs.core/fn [position id-path]
          {:pre [(valid? ::d/position position)
-                (valid? (s/nilable int?) obj-id)]}
-         (re-frame/dispatch [:canvas/click position obj-id]))
+                (valid? (s/nilable ::d/id-path) id-path)]}
+         (re-frame/dispatch [:canvas/click position id-path]))
 
        ;; doubletap handler
        :canvas-double-click
        (cljs.core/fn [position obj-id]
          {:pre [(valid? ::d/position position)
-                (valid? (s/nilable int?) obj-id)]}
+                (valid? (s/nilable ::d/id-path) obj-id)]}
          (re-frame/dispatch [:canvas/double-click position obj-id]))})))
 
 

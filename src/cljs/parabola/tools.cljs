@@ -34,10 +34,10 @@
   "A protocol for tools that re-frame uses to forward interactions"
   (on-selected [this db] "The tool was selected")
   (on-unselected [this db] "The tool was unselected")
-  (on-click [this db position obj-id] "The canvas was clicked")
+  (on-click [this db position id-path] "The canvas was clicked")
   (on-double-click [this db position obj-id] "The canvas was double clicked")
   (on-move [this db position] "The mouse moved over the canvas")
-  (on-drag [this db dpos obj-id] "An object was dragged"))
+  (on-drag [this db dpos id-path] "An object was dragged"))
 
 
 ;;
@@ -48,7 +48,7 @@
     ITool
     (on-selected [this db] (log/info "Make circle tool selected") db)
     (on-unselected [this db] (log/info "Make circle tool unselected") db)
-    (on-click [this db position obj-id]
+    (on-click [this db position id-path]
       (let [next-object-id  (::d/next-object-id db)]
         (-> db
           (assoc-in [::d/objects next-object-id]
@@ -58,7 +58,7 @@
              ::d/radial [20 0]})
           (update ::d/next-object-id inc))))
 
-    (on-double-click [this db position obj-id] db)
+    (on-double-click [this db position id-path] db)
     (on-move [this db position] db)
     (on-drag [this db dpos obj-id] db))
 
@@ -100,9 +100,9 @@
       (assoc db ::d/tool-state nil))
 
     (on-click [this db position _]
-      (let [path-id (get-in db [:db/tool-state ::d/id]),
+      (let [id-path (get-in db [:db/tool-state ::d/id]),
             next-object-id  (::d/next-object-id db)]
-        (if (nil? path-id)
+        (if (nil? id-path)
             ; We are not already creating a path. So, create a new one.
             (-> db
              ; Create path with next-object-id
@@ -114,22 +114,22 @@
 
             ; We are in the middle of creating a path.
             ; Add a new vertex
-            (update-in db [::d/objects path-id ::d/vertices] conj {::d/vertex-type :no-handles ::d/position position}))))
+            (update-in db [::d/objects id-path ::d/vertices] conj {::d/vertex-type :no-handles ::d/position position}))))
 
     (on-double-click [this db position _]
       ;; If we were creating a path; stop.
-      (let [path-id (get-in db [:db/tool-state ::d/id]),]
-        (if (nil? path-id)
+      (let [id-path (get-in db [:db/tool-state ::d/id]),]
+        (if (nil? id-path)
             db ; Do nothing
             (assoc-in db [:db/tool-state ::d/id] nil))))
 
     ;; If we have a stub-path in progress then moving the mouse should move the
     ;; last point.
     (on-move [this db position]
-      (let [path-id (get-in db [:db/tool-state ::d/id])]
-        (if (nil? path-id) db  ; Do nothing))))
+      (let [id-path (get-in db [:db/tool-state ::d/id])]
+        (if (nil? id-path) db  ; Do nothing))))
             ;; Move the last point
-            (update-in db [::d/objects path-id ::d/vertices] with-last-point-moved position))))
+            (update-in db [::d/objects id-path ::d/vertices] with-last-point-moved position))))
 
     (on-drag [this db dpos obj-id] db))
 
@@ -145,10 +145,10 @@
     (on-unselected [this db]
       (hide-all-anchors db))
 
-    (on-click [this db position obj-id]
+    (on-click [this db position [obj-id & sub-id-path]]
       (if-not obj-id db (update db ::d/objects dissoc obj-id)))
 
-    (on-double-click [this db position obj-id] db)
+    (on-double-click [this db position id-path] db)
     (on-move [this db position] db)
     (on-drag [this db dpos obj-id] db))
 
@@ -167,18 +167,18 @@
     (on-unselected [this db]
       (hide-all-anchors db))
 
-    (on-click [this db position obj-id] db)
+    (on-click [this db position id-path] db)
 
-    (on-double-click [this db position obj-id] db)
+    (on-double-click [this db position id-path] db)
     (on-move [this db position] db)
 
-    (on-drag [this db dpos obj-id]
+    (on-drag [this db dpos id-path]
       ;; XXX We are inconsistent; on-click takes a simple object ID (2) whereas
       ;;     on-drag takes a complete path [1 2 3]
       ;; XXX We should always use the path.
       (update-in
         db
-        [::d/objects (first obj-id)]
+        [::d/objects (first id-path)]
         objects/moved-object (partial pos-add dpos))))
 
 
@@ -196,14 +196,14 @@
 
     (on-click [this db position obj-id] db)
 
-    (on-double-click [this db position obj-id] db)
+    (on-double-click [this db position id-path] db)
     (on-move [this db position] db)
 
-    (on-drag [this db dpos obj-id]
+    (on-drag [this db dpos id-path]
       ;; XXX We are inconsistent; on-click takes a simple object ID (2) whereas
       ;;     on-drag takes a complete path [1 2 3]
       ;; XXX We should always use the path.
-      (let [[obj-index & rest] obj-id]
+      (let [[obj-index & rest] id-path]
         (cond
           (not (int? obj-index)) (do (log/warn "Invalid object index") db)
           (empty? rest)          db
@@ -213,6 +213,29 @@
             objects/object-with-node-moved rest (partial pos-add dpos))))))
 
 ;;
+;; Delete node (anchor or handle) tool
+;;
+
+(defrecord DeleteNode []
+    ITool
+    (on-selected [this db]
+      (-> db show-all-anchors show-all-handles))
+
+    (on-unselected [this db]
+      (-> db hide-all-anchors hide-all-handles))
+
+    (on-click [this db position id-path] db
+      ;; Did they click on a node?
+      (println id-path)
+      db)
+
+    (on-double-click [this db position id-path] db)
+    (on-move [this db position] db)
+
+    (on-drag [this db dpos obj-id] db))
+
+
+;;
 ;; A map of all our tools
 ;;
 
@@ -220,4 +243,5 @@
                 :tools/make-path (MakePath.)
                 :tools/object-delete (DeleteObject.)
                 :tools/object-move (MoveObject.)
-                :tools/node-move (MoveNode.)})
+                :tools/node-move (MoveNode.)
+                :tools/node-delete (DeleteNode.)})

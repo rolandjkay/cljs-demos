@@ -40,11 +40,11 @@
 
 (re-frame/reg-event-db
   :canvas/click
-  (cljs.core/fn [db [_ position obj-id]] {:pre [(valid? ::d/db db)], :post [(valid? ::d/db %)]}
+  (cljs.core/fn [db [_ position id-path]] {:pre [(valid? ::d/db db)], :post [(valid? ::d/db %)]}
     ;; Let the currently-selected tool handle.
     (let [tool-kw (::d/selected-tool db),
           tool  (tool-kw tools/tools-map)]
-      (tools/on-click tool db position obj-id))))
+      (tools/on-click tool db position id-path))))
 
 (re-frame/reg-event-db
   :canvas/double-click
