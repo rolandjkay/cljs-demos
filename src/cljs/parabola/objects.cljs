@@ -314,7 +314,7 @@
           [id 1]
           (node-selected? 1 (::d/selected-anchors circle))))]))
 
-;;; move-anchors ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; object-with-node-moved ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Multi-methods that know how to move the anchors/handles (dit "nodes") of
 ;; the different objects.
@@ -456,3 +456,98 @@
 ;   :post [(valid? ::d/circle circle)]]
 
   (update circle ::d/position transform))
+
+
+;;; object-with-node-removed ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Multi-methods that know how to remove the anchors/handles (dit "nodes") of
+;; the different objects.
+
+(defmulti
+  object-with-node-removed
+  ; Dispatch function
+  (fn
+    [obj]
+    {:pre [(s/valid? ::d/object obj)]}
+    (::d/object-type obj)))
+
+;;; object-with-node-removed [PATH] ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn- remove-path-anchor
+  "Remoe an anchor from a path"
+  [vertices anchor-id]
+  ; Refuse to delete if there are only two vertices; a path with only one vertex
+  ; is useles and hard to edit. The user should delete the object instead.
+  (if (< (count vertices) 3) vertices
+    (into []
+      (concat (subvec vertices 0 anchor-id)
+              (subvec vertices (inc anchor-id))))))
+
+(defn- remove-vertex-handle
+  "Remoe a handle from a path"
+  [vertex handle-id]
+  {:pre [(valid? ::d/vertex vertex) (int? handle-id)]}
+
+  ;0
+  ; no-handles -> no-handles
+  ; handle-before -> no-handles
+  ; handle-after -> handle-after
+  ; handle-symmetric -> handle-after
+  ; handle-semi-symmetric -> handle-after
+  ; handle-asymmetric -> handle-after
+
+  ;1
+  ; no-handles -> no-handles
+  ; handle-before -> handle-before
+  ; handle-after -> no-handles
+  ; handle-symmetric -> handle-before
+  ; handle-semi-symmetric -> handle-before
+  ; handle-asymmetric -> handle-before
+  (let [{position ::d/position
+         angle ::d/angle
+         before-angle ::d/before-angle
+         after-angle ::d/after-angle
+         length ::d/length
+         before-length ::d/before-length
+         after-length ::d/after-length
+         vertex-type ::d/vertex-type} vertex]
+    (println [handle-id vertex-type])
+    (case [handle-id vertex-type]
+      [0 :no-handles]     vertex
+      [0 :handle-before]  {::d/vertex-type :no-handles ::d/position position}
+      [0 :handle-after]   vertex
+      [0 :symmetric]      {::d/vertex-type :handle-after ::d/position position ::d/after-angle angle ::d/after-length length}
+      [0 :semi-symmetric] {::d/vertex-type :handle-after ::d/position position ::d/after-angle angle ::d/after-length after-length}
+      [0 :asymmetric]     {::d/vertex-type :handle-after ::d/position position ::d/after-angle after-angle ::d/after-length after-length}
+
+      [1 :no-handles]     vertex
+      [1 :handle-before]  vertex
+      [1 :handle-after]   {::d/vertex-type :no-handles ::d/position position}
+      [1 :symmetric]      {::d/vertex-type :handle-before ::d/position position ::d/before-angle angle ::d/before-length length}
+      [1 :semi-symmetric] {::d/vertex-type :handle-before ::d/position position ::d/before-angle angle ::d/before-length before-length}
+      [1 :asymmetric]     {::d/vertex-type :handle-before ::d/position position ::d/before-angle before-angle ::d/before-length before-length}
+      vertex)))
+
+(defmethod object-with-node-removed :path
+  [path [anchor-id handle-id]]
+;  {:pre [(valid? ::d/path path)]  <-- these are ignored by defmethod
+;   :post [(valid? ::d/path path)]]
+
+  (cond
+    (nil? anchor-id) path ; do nothing
+    (nil? handle-id) (update path ::d/vertices
+                       remove-path-anchor anchor-id handle-id)
+    :else            (update-in path [::d/vertices anchor-id]
+                       remove-vertex-handle handle-id)))
+
+
+;;; object-with-node-removed [CIRCLE] ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defmethod moved-object :circle
+  [circle node-id-path]
+;  {:pre [(valid? ::d/circle circle)] <-- these are ignored by defmethod
+;   :post [(valid? ::d/circle circle)]]
+
+  ; Nothing to do; a circle has two nodes. Neither can be removed without
+  ; destroying the circle
+  circle)

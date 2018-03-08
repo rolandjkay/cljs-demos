@@ -173,9 +173,6 @@
     (on-move [this db position] db)
 
     (on-drag [this db dpos id-path]
-      ;; XXX We are inconsistent; on-click takes a simple object ID (2) whereas
-      ;;     on-drag takes a complete path [1 2 3]
-      ;; XXX We should always use the path.
       (update-in
         db
         [::d/objects (first id-path)]
@@ -200,9 +197,6 @@
     (on-move [this db position] db)
 
     (on-drag [this db dpos id-path]
-      ;; XXX We are inconsistent; on-click takes a simple object ID (2) whereas
-      ;;     on-drag takes a complete path [1 2 3]
-      ;; XXX We should always use the path.
       (let [[obj-index & rest] id-path]
         (cond
           (not (int? obj-index)) (do (log/warn "Invalid object index") db)
@@ -225,9 +219,11 @@
       (-> db hide-all-anchors hide-all-handles))
 
     (on-click [this db position id-path] db
-      ;; Did they click on a node?
-      (println id-path)
-      db)
+      (if (nil? id-path) db
+          (update-in
+            db
+            [::d/objects (first id-path)]
+            objects/object-with-node-removed (rest id-path))))
 
     (on-double-click [this db position id-path] db)
     (on-move [this db position] db)
