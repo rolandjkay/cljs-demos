@@ -99,6 +99,7 @@
                          :tools/node-move
                          :tools/node-delete
                          :tools/node-add
+                         :tools/node-select
                          :tools/object-delete
                          :tools/object-move})
 

@@ -634,3 +634,38 @@
 
 ;; Cannot add a node to a circle; so, this is a NOOP.
 (defmethod object-with-node-added :circle [circle position] circle)
+
+
+
+;;; object-with-node-selected ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Multi-methods that know how to select anchors/handles (dit "nodes") to
+;; the different objects.
+
+(defmulti
+  object-with-node-selected
+  ; Dispatch function
+  (fn
+    [obj]
+    {:pre [(valid? ::d/object obj)]}
+    (::d/object-type obj)))
+
+;; object-with-node-selected [PATH]) ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defmethod object-with-node-selected :path
+  [path node-id]
+  (let [anchor-id (first node-id)]
+    (-> path
+      (assoc ::d/selected-anchors [anchor-id])
+      (assoc ::d/selected-handles
+        [[anchor-id :before]
+         [anchor-id :after]]))))
+
+
+;; object-with-node-selected [CIRCLE]) ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defmethod object-with-node-selected :circle
+  [path node-id]
+  (let [anchor-id (first node-id)]
+    (-> path
+      (assoc ::d/selected-anchors [anchor-id]))))

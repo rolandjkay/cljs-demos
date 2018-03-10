@@ -243,7 +243,6 @@
       (-> db hide-all-anchors hide-all-handles))
 
     (on-click [this db position id-path] db
-      (println "AddNode" objects/object-with-node-added)
       (if (nil? id-path) db
           (update-in
             db
@@ -255,6 +254,42 @@
 
     (on-drag [this db dpos obj-id] db))
 
+;;
+;; Add node (anchor or handle) tool
+;;
+
+(defn- select-node [db id-path]
+  ; A path to a node must be at least two elements long:
+  ; [obj-index node-index]
+  (if (< (count id-path) 2)
+    db
+    (update-in db
+      [::d/objects (first id-path)]
+      objects/object-with-node-selected (rest id-path))))
+
+
+(defrecord SelectNode []
+    ITool
+    (on-selected [this db]
+      (-> db show-all-anchors show-all-handles))
+
+    (on-unselected [this db]
+      (-> db hide-all-anchors hide-all-handles))
+
+    (on-click [this db position id-path]
+      (let [remove-selection
+            (fn [obj]
+              (-> (dissoc obj ::d/selected-anchors)
+                  (dissoc obj ::d/selected-handles)))]
+
+        (-> db
+          ; Deselect all node
+          (update ::d/objects map-function-on-map-vals remove-selection)
+          (select-node id-path))))
+
+    (on-double-click [this db position id-path] db)
+    (on-move [this db position] db)
+    (on-drag [this db dpos obj-id] db))
 
 ;;
 ;; A map of all our tools
@@ -266,4 +301,5 @@
                 :tools/object-move (MoveObject.)
                 :tools/node-move (MoveNode.)
                 :tools/node-delete (DeleteNode.)
-                :tools/node-add (AddNode.)})
+                :tools/node-add (AddNode.)
+                :tools/node-select (SelectNode.)})

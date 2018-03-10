@@ -178,7 +178,8 @@
        [:p "Nodes"]
        (tool-button :tools/node-move "Move")
        (tool-button :tools/node-delete "Delete")
-       (tool-button :tools/node-add "Add")]
+       (tool-button :tools/node-add "Add")
+       (tool-button :tools/node-select "Select")]
 
       [:div#objects
        [:p "Objects"]
@@ -186,3 +187,6 @@
        (tool-button :tools/object-delete "Delete")
        (tool-button :tools/make-circle "Circle")
        (tool-button :tools/make-path "Path")]]))
+
+;(defn properties-bar
+;  "A properties toolbar for changing anchor types")
