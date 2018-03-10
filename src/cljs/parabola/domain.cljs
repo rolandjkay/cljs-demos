@@ -98,6 +98,7 @@
                          :tools/make-path
                          :tools/node-move
                          :tools/node-delete
+                         :tools/node-add
                          :tools/object-delete
                          :tools/object-move})
 

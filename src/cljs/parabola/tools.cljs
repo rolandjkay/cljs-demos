@@ -19,7 +19,6 @@
   (update db ::d/objects map-function-on-map-vals #(dissoc % ::d/display-anchors)))
 
 (defn- show-all-handles [db]
-  (println "HELLO")
   (update db ::d/objects map-function-on-map-vals #(assoc % ::d/display-handles :all)))
 
 (defn- hide-all-handles [db]
@@ -232,6 +231,32 @@
 
 
 ;;
+;; Add node (anchor or handle) tool
+;;
+
+(defrecord AddNode []
+    ITool
+    (on-selected [this db]
+      (-> db show-all-anchors show-all-handles))
+
+    (on-unselected [this db]
+      (-> db hide-all-anchors hide-all-handles))
+
+    (on-click [this db position id-path] db
+      (println "AddNode" objects/object-with-node-added)
+      (if (nil? id-path) db
+          (update-in
+            db
+            [::d/objects (first id-path)]
+            objects/object-with-node-added position)))
+
+    (on-double-click [this db position id-path] db)
+    (on-move [this db position] db)
+
+    (on-drag [this db dpos obj-id] db))
+
+
+;;
 ;; A map of all our tools
 ;;
 
@@ -240,4 +265,5 @@
                 :tools/object-delete (DeleteObject.)
                 :tools/object-move (MoveObject.)
                 :tools/node-move (MoveNode.)
-                :tools/node-delete (DeleteNode.)})
+                :tools/node-delete (DeleteNode.)
+                :tools/node-add (AddNode.)})

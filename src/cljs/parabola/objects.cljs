@@ -5,10 +5,12 @@
   (:require [parabola.domain :as d]
             [parabola.utils :refer [value-in-collection? pairs pos-add pos-diff
                                     str->id id->str valid? vector-length
-                                    map-function-on-map-vals]]
+                                    map-function-on-map-vals]
+                            :as utils]
             [clojure.spec.alpha :as s]
             [clojure.string :as str]
-            [parabola.log :as log]))
+            [parabola.log :as log]
+            [parabola.bezier :as bezier]))
 
 (defn- deg->rad
   "Convert an angle in degrees to radians"
@@ -479,9 +481,7 @@
   ; Refuse to delete if there are only two vertices; a path with only one vertex
   ; is useles and hard to edit. The user should delete the object instead.
   (if (< (count vertices) 3) vertices
-    (into []
-      (concat (subvec vertices 0 anchor-id)
-              (subvec vertices (inc anchor-id))))))
+    (utils/remove-from-vector vertices anchor-id)))
 
 (defn- remove-vertex-handle
   "Remoe a handle from a path"
@@ -551,3 +551,86 @@
   ; Nothing to do; a circle has two nodes. Neither can be removed without
   ; destroying the circle
   circle)
+
+
+;;; object-with-node-added ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Multi-methods that know how to add anchors/handles (dit "nodes") to
+;; the different objects.
+
+(defmulti
+  object-with-node-added
+  ; Dispatch function
+  (fn
+    [obj]
+    {:pre [(s/valid? ::d/object obj)]}
+    (::d/object-type obj)))
+
+;;; object-with-node-added [PATH]) ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn- vertex-pair->bezier-curve
+  "Map a pair of vertices to four Bezier control points"
+  [[start end]]
+  {:pre [(valid? ::d/vertex start)
+         (valid? ::d/vertex end)]
+   :post [(valid? ::bezier/cubic-bezier-curve %)]}
+
+  (let [start-after-length (::d/length start (::d/after-length start 0))
+        start-after-angle (::d/angle start (::d/after-angle start 0))
+        end-before-length (::d/length end (::d/before-length end 0))
+        end-before-angle (::d/angle end (::d/before-angle end 0))
+        first-point (::d/position start)
+        last-point (::d/position start)]
+
+    [first-point
+     ; Second control point is absolute position of after handle of 'start'
+     (utils/pos-add
+       first-point
+       (polar->cartesian [start-after-length start-after-angle]))
+     ; Third control point is absolute position of before handle of end
+     (utils/pos-add
+       last-point
+       (polar->cartesian [(- end-before-length) end-before-angle]))
+     last-point]))
+
+
+(defn- path->bezier-curves
+  [path]
+  {:pre (valid? ::d/path path)
+   :post [(valid?
+            (s/coll-of ::bezier/cubic-bezier-curve)
+            %)]}
+
+  (map
+    vertex-pair->bezier-curve
+    (utils/pairs (::d/vertices path))))
+
+(defn- position->segment-index
+  "Find the segment that was clicked on"
+  [path position]
+  {:pre [(valid? ::d/path path)
+         (valid? ::d/position position)]}
+
+  (bezier/closest-bezier-curve-index
+    (path->bezier-curves path)
+    position))
+
+;; Add an anchor to the path at the given position
+(defmethod object-with-node-added :path
+  [path position]
+;  {:pre [(valid? ::d/path path)]  <-- these are ignored by defmethod]
+;   :post [(valid? ::d/path path)]]
+
+  (println "object-with-node-added"  position)
+
+  (let [vertex-index (position->segment-index path position)]
+    (update path ::d/vertices
+      utils/insert-into-vector
+      (inc vertex-index)
+      {::d/vertex-type :no-handles ::d/position position})))
+
+
+;;; object-with-node-added [CIRCLE]) ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; Cannot add a node to a circle; so, this is a NOOP.
+(defmethod object-with-node-added :circle [circle position] circle)
