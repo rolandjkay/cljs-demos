@@ -669,3 +669,77 @@
   (let [anchor-id (first node-id)]
     (-> path
       (assoc ::d/selected-anchors [anchor-id]))))
+
+
+;;; object-with-vertex-type-set ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Change a vertex type.
+
+(defmulti
+  object-with-vertex-type-set
+  ; Dispatch function
+  (fn
+    [obj]
+    {:pre [(valid? ::d/object obj)]}
+    (::d/object-type obj)))
+
+;; object-with-node-selected [PATH]) ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defmethod object-with-vertex-type-set :path
+  [path vertex-index vertex-type]
+
+  (let [vertex (get-in path [::d/vertices vertex-index])
+        position (::d/position vertex)
+        after-length (::d/length vertex (::d/after-length vertex 20))
+        before-length (::d/length vertex (::d/before-length vertex 20))
+        after-angle (::d/angle vertex (::d/after-angle vertex 20))
+        before-angle (::d/angle vertex (::d/before-angle vertex 20))]
+
+    (update path ::d/vertices
+      assoc    ; <- Use assoc to replace an element in the vector
+      vertex-index
+      (case vertex-type
+        :no-handles      {::d/vertex-type vertex-type ::d/position position}
+        :handle-before   {::d/vertex-type vertex-type ::d/position position ::d/before-angle before-angle ::d/before-length before-length}
+        :handle-after    {::d/vertex-type vertex-type ::d/position position ::d/after-angle after-angle ::d/after-length after-length}
+        :symmetric       {::d/vertex-type vertex-type ::d/position position ::d/angle after-angle ::d/length after-length}
+        :semi-symmetric  {::d/vertex-type vertex-type ::d/position position ::d/angle after-angle ::d/before-length before-length ::d/after-length after-length}
+        :asymmetric      {::d/vertex-type vertex-type ::d/position position ::d/before-angle before-angle ::d/before-length before-length ::d/after-angle after-angle ::d/after-length after-length}
+        {::d/vertex-type :no-handles ::d/position position}))))
+
+
+;; object-with-node-selected [CIRCLE]) ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; This is a NOOP for circle
+(defmethod object-with-vertex-type-set :circle
+  [circle node-id vertex-type]
+  circle)
+
+
+
+;;; object-with-selected-vertex-type-set ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Change a vertex type.
+
+(defmulti
+  object-with-selected-vertex-type-set
+  ; Dispatch function
+  (fn
+    [obj]
+    {:pre [(valid? ::d/object obj)]}
+    (::d/object-type obj)))
+
+;; object-with-node-selected [PATH]) ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defmethod object-with-selected-vertex-type-set :path
+  [path vertex-type]
+
+  (let [selected-anchors (::d/selected-anchors path)
+        setter (fn setter [path_ vertex-index]
+                 (object-with-vertex-type-set path_ vertex-index vertex-type))]
+    (reduce setter path selected-anchors)))
+
+;; object-with-node-selected [CIRCLE]) ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defmethod object-with-selected-vertex-type-set :circle
+  [circle vertex-type] circle)  ; NOOP

@@ -9,11 +9,14 @@
   (fn [db _]
     (:active-panel db)))
 
-
-;(re-frame/reg-sub
-; :selected-object
-; (fn [db _]
-;   (:selected-object db)))
+; Yield true is any node is selected
+(re-frame/reg-sub :subs/node-selected?
+  (fn subs-node-selected [db _]
+    (some
+      ; Returns nil (false) is ::d/selected-anchors missing or referes to empty
+      ; vector.
+      (fn [[id obj]] (first (::d/selected-anchors obj)))
+      (::d/objects db))))
 
 ;; Simple lookups from the db
 ;(trace-forms {:tracer (tracer :color "green")}

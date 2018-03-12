@@ -2,7 +2,7 @@
   (:require [re-frame.core :as re-frame]
             [reagent.format :as format]
             [parabola.subs :as subs]
-            [parabola.components :as components :refer [toolbar svg-canvas]]))
+            [parabola.components :as components :refer [toolbar svg-canvas properties-bar]]))
 
 
 
@@ -12,6 +12,7 @@
 (defn home-panel []
   [:div
     [toolbar]
+    [properties-bar]
     [svg-canvas]]) ;{:width 600 :height 600}]])
 
 ;; about

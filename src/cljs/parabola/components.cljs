@@ -188,5 +188,21 @@
        (tool-button :tools/make-circle "Circle")
        (tool-button :tools/make-path "Path")]]))
 
-;(defn properties-bar
-;  "A properties toolbar for changing anchor types")
+(defn properties-bar
+  "A properties toolbar for changing anchor types"
+  []
+  (let [vertex-selected? (re-frame/subscribe [:subs/node-selected?]),
+        tool-button
+        (fn [kw label]
+          [:button {:type "button"
+                    :class (if @vertex-selected? "btn-primary" "disabled btn-primary")
+                    :on-click #(re-frame.core/dispatch [:cmds/set-vertex-type kw])}
+            label])]
+
+    [:div#toolbar.btn-group-vertical.btn-group-lg
+      (tool-button :no-handles "Corner")
+      (tool-button :handle-before "Curve before")
+      (tool-button :handle-after "Curve after")
+      (tool-button :semi-symmetric "Smooth")
+      (tool-button :symmetric "Smooth symmetric")
+      (tool-button :asymmetric "Asymmetric")]))

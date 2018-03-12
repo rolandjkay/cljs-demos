@@ -3,6 +3,8 @@
             [parabola.db :as db]
             [parabola.domain :as d]
             [parabola.tools :as tools]
+            [parabola.utils :as utils]
+            [parabola.objects :as objects]
             [parabola.utils :refer [valid?]]
             [clairvoyant.core :refer-macros [trace-forms]]
             [re-frame-tracer.core :refer [tracer]]))
@@ -34,6 +36,17 @@
           (tools/on-selected new-tool)
           (select-tool new-tool-kw))))))
 
+(trace-forms {:tracer (tracer :color "red")}
+  (re-frame/reg-event-db
+    :cmds/set-vertex-type
+    (cljs.core/fn
+      vertex-type-setter
+      [db [_ vertex-type]]
+      {:pre [(valid? ::d/db db)], :post [(valid? ::d/db %)]}
+      ; Change all selected vertecies to the give type
+      (update db ::d/objects
+        #(utils/map-function-on-map-vals %
+          (fn [obj] (objects/object-with-selected-vertex-type-set obj vertex-type)))))))
 
 ;;
 ;; Forward any interactions with the 'canvas' to the selected tool.
