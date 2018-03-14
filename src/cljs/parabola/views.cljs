@@ -2,7 +2,8 @@
   (:require [re-frame.core :as re-frame]
             [reagent.format :as format]
             [parabola.subs :as subs]
-            [parabola.components :as components :refer [toolbar svg-canvas properties-bar]]))
+            [parabola.components :as components
+              :refer [toolbar svg-canvas properties-bar markup-display]]))
 
 
 
@@ -13,6 +14,7 @@
   [:div
     [toolbar]
     [properties-bar]
+    [markup-display]
     [svg-canvas]]) ;{:width 600 :height 600}]])
 
 ;; about

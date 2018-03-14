@@ -78,3 +78,37 @@
   (into []
     (concat (subvec vec 0 index)
             (subvec vec (inc index)))))
+
+
+(defn deg->rad
+  "Convert an angle in degrees to radians"
+  [t]
+  (* (.-PI js/Math) (/ t 180)))
+
+(defn rad->deg
+  "Convert an angle in radians to degrees"
+  [t]
+  (* 180 (/ t (.-PI js/Math))))
+
+(defn polar->cartesian
+  "Convert a polar coordinate to a castesian one"
+  [[r t]]
+  {:pre [(s/valid? ::d/position [r t])] :post [(s/valid? ::d/position %)]}
+  [(* r (js/Math.cos (deg->rad t)))
+   (* r (js/Math.sin (deg->rad t)))])
+
+(s/fdef polar->cartesian
+  :args (s/and :polar ::d/position
+               #(>= ((-> % :polar 0) 0)))
+  :ret ::d/position)
+
+(defn cartesian->polar
+  "Convert a Cartesian coordinate to a polar one"
+  [[x y]]
+  {:pre [(s/valid? ::d/position [x y])] :post [(s/valid? ::d/position %)]}
+
+  [  (js/Math.sqrt (+ (* x x) (* y y))),
+     (+ (-> (/ y x) js/Math.atan rad->deg)
+        (if (>= x 0)
+            (if (>= y 0) 0  360)
+            180))])

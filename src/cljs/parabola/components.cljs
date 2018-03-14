@@ -13,7 +13,8 @@
             [cljsjs.interact]
             [clojure.string :as str]
             [parabola.log :as log]
-            [parabola.subs :as subs]))
+            [parabola.subs :as subs]
+            [parabola.ml :as ml]))
 
 (defn- install-handlers
   "Installs interactsj handler
@@ -206,3 +207,11 @@
       (tool-button :semi-symmetric "Smooth")
       (tool-button :symmetric "Smooth symmetric")
       (tool-button :asymmetric "Asymmetric")]))
+
+(defn markup-display
+  "Display the objects as a simplified markup"
+  []
+  (let [objects (re-frame/subscribe [:subs/objects])]
+    [:div {:style {:background-color "black"
+                   :font-family "'Source Code Pro', monospace"}};}}
+      (ml/objects->markup @objects)]))
