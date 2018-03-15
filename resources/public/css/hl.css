@@ -1,0 +1,15 @@
+pre code.hl {
+  color: #444;
+  display: block;
+  overflow-x: auto;
+  padding: 0.5em;
+  background: #F0F0F0;
+}
+
+pre code.hl .hl-name {
+  font-weight: bold;
+}
+
+pre code.hl .hl-string {
+  color: #880000;
+}

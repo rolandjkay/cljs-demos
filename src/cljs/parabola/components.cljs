@@ -14,7 +14,8 @@
             [clojure.string :as str]
             [parabola.log :as log]
             [parabola.subs :as subs]
-            [parabola.ml :as ml]))
+            [parabola.ml :as ml]
+            [parabola.highlight :as highlight]))
 
 (defn- install-handlers
   "Installs interactsj handler
@@ -208,10 +209,39 @@
       (tool-button :symmetric "Smooth symmetric")
       (tool-button :asymmetric "Asymmetric")]))
 
+;;
+;; Display objects as XML
+;;
+
+;(defn- markup-display-render []
+;  (let [objects (re-frame/subscribe [:subs/objects])]
+;    [:pre
+;      [:code
+;        (ml/objects->markup @objects))]))
+;
+;(defn- highlight-code [html-node]
+;  ;(let [nodes (.querySelectorAll html-node "pre code")]
+;  ;  (loop [i (.-length nodes)]
+;  ;    (when-not (neg? i)
+;  ;      (when-let [item (.item nodes i)]
+;          (.highlightBlock js/hljs html-node))]))
+;  ;      (recur (dec i)))
+;
+;(defn- markup-display-did-mount [this]
+;  (let [node (reagent/dom-node this)]
+;    (highlight-code node)))
+
+;(defn markup-display []
+;  (reagent/create-class
+;   {:reagent-render      markup-display-render
+;    :component-did-mount markup-display-did-mount))
+
 (defn markup-display
   "Display the objects as a simplified markup"
   []
   (let [objects (re-frame/subscribe [:subs/objects])]
-    [:div {:style {:background-color "black"
-                   :font-family "'Source Code Pro', monospace"}};}}
-      (ml/objects->markup @objects)]))
+    (println (ml/objects->markup @objects))
+    [:div ;{:style {:background-color "black"
+          ;         :font-family "'Source Code Pro', monospace";}}
+      (highlight/highlight
+        (ml/objects->markup @objects))]))

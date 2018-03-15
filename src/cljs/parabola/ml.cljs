@@ -11,8 +11,7 @@
   [position]
   {:pre [(utils/valid? ::domain/position position)]}
 
-  [:span {:style {:color "purple"}}
-    "\"" (position 0) "," (position 1) "\""])
+  (str "\"" (position 0) "," (position 1) "\""))
 
 ;;; object->markup ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -27,9 +26,8 @@
 
 ;; object->markup [PATH]) ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn- vertex->markup [index vertex]
-  {:pre [(utils/valid? int? index)
-         (utils/valid? ::domain/vertex vertex)]}
+(defn- vertex->markup [vertex]
+  {:pre [(utils/valid? ::domain/vertex vertex)]}
 
   (let [before-angle (::domain/before-angle vertex)
         before-length (::domain/before-length vertex)
@@ -38,28 +36,23 @@
         angle (::domain/angle vertex)
         length (::domain/length vertex)
         position (::domain/position vertex)
+        position-ml (position->markup position)
         vertex-type (::domain/vertex-type vertex)]
 
-    [:span {:key index, :style {:color "cyan"}}
-      "<vertex position=" (position->markup position)
+    [:vertex
       (case vertex-type
-        :no-handles (str "vertex-type=\"no-handles\"")
-        :handle-before (str "vertex-type=\"handle-before\" angle=\"" before-angle "\" length=\"" before-length "\"")
-        :handle-after (str "vertex-type=\"handle-after\" angle=\"" after-angle "\" length=" after-length)
-        :semi-symmetric (str "vertex-type=\"semi-symmetric\" angle=" angle " length-one=" before-length " length-two=" after-length)
-        :symmetric (str "vertex-type=\"symmetric\" angle=" angle " length=" length)
-        :asymmetric (str "vertex-type=\"symmetric\" first-angle=" before-angle " first-length=" before-length  " second-angle=" after-angle " second-length=" after-length))
-
-      "/>"
-      [:br]]))
-
+        :no-handles {:vertex-type "no-handles" :position position-ml}
+        :handle-before {:vertex-type "handle-before" :angle before-angle :length before-length}
+        :handle-after {:vertex-type "handle-after" :angle after-angle :length after-length}
+        :semi-symmetric {:vertex-type "semi-symmetric" :angle angle :length-one before-length :length-two after-length}
+        :symmetric {:vertex-type "symmetric" :angle angle :length length}
+        :asymmetric {:vertex-type "symmetric" :first-angle before-angle :first-length before-length :second-angle after-angle :second-length after-length})]))
 
 (defmethod object->markup :path [path]
-  [:span {:key (::domain/id path), :style {:color "cyan"}}
-    "<path>" [:br]
-    (map-indexed vertex->markup (::domain/vertices path))
-    "</path>"
-    [:br]])
+  (into []
+    (concat
+      [:path {}]
+      (mapv vertex->markup (::domain/vertices path)))))
 
 ;; object->markup [CIRCLE]) ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -68,20 +61,8 @@
   (js/Math.round (first (utils/cartesian->polar radial))))
 
 (defmethod object->markup :circle [circle]
-  [:span {:key (::domain/id circle), :style {:color "cyan"}}
-    "<circle "
-      [:span {:style {:color "green"}} "position"]
-      [:span {:style {:color "white"}} "="]
-      (position->markup (::domain/position circle))
-      [:span {:style {:color "green"}} " radius"]
-      [:span {:style {:color "white"}} "="]
-      [:span {:style {:color "purple"}}
-        "\""
-        (radial->radius (::domain/radial circle))
-        "\""]
-    "/>"
-    [:br]])
-
+  [:circle :position (position->markup (::domain/position circle))
+           :radius (str "\"" (radial->radius (::domain/radial circle)) "\"")])
 
 ;;; objects->markup ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -90,6 +71,9 @@
   "Convert a map of objects to a str containing markup"
   [objects]
   {:pre (utils/valid? ::domain/objects objects)}
-  (map
-    object->markup
-    objects))
+  (vec
+    (concat
+      [:objects {}]
+      (map
+        object->markup
+        objects))))
