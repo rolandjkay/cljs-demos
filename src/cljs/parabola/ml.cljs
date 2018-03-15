@@ -6,12 +6,6 @@
             [parabola.utils :as utils]
             [parabola.domain :as domain]))
 
-(defn position->markup
-  "[100 200] -> \"100,200\" in purple"
-  [position]
-  {:pre [(utils/valid? ::domain/position position)]}
-
-  (str "\"" (position 0) "," (position 1) "\""))
 
 ;;; object->markup ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -36,17 +30,16 @@
         angle (::domain/angle vertex)
         length (::domain/length vertex)
         position (::domain/position vertex)
-        position-ml (position->markup position)
         vertex-type (::domain/vertex-type vertex)]
 
     [:vertex
       (case vertex-type
-        :no-handles {:vertex-type "no-handles" :position position-ml}
-        :handle-before {:vertex-type "handle-before" :angle before-angle :length before-length}
-        :handle-after {:vertex-type "handle-after" :angle after-angle :length after-length}
-        :semi-symmetric {:vertex-type "semi-symmetric" :angle angle :length-one before-length :length-two after-length}
-        :symmetric {:vertex-type "symmetric" :angle angle :length length}
-        :asymmetric {:vertex-type "symmetric" :first-angle before-angle :first-length before-length :second-angle after-angle :second-length after-length})]))
+        :no-handles {:vertex-type "no-handles" :position position}
+        :handle-before {:vertex-type "handle-before" :position position :angle before-angle :length before-length}
+        :handle-after {:vertex-type "handle-after" :position position :angle after-angle :length after-length}
+        :semi-symmetric {:vertex-type "semi-symmetric" :position position :angle angle :length-one before-length :length-two after-length}
+        :symmetric {:vertex-type "symmetric" :position position :angle angle :length length}
+        :asymmetric {:vertex-type "symmetric" :position position :first-angle before-angle :first-length before-length :second-angle after-angle :second-length after-length})]))
 
 (defmethod object->markup :path [path]
   (into []
@@ -61,8 +54,9 @@
   (js/Math.round (first (utils/cartesian->polar radial))))
 
 (defmethod object->markup :circle [circle]
-  [:circle :position (position->markup (::domain/position circle))
-           :radius (str "\"" (radial->radius (::domain/radial circle)) "\"")])
+  [:circle
+    {:position (::domain/position circle)
+     :radius (radial->radius (::domain/radial circle))}])
 
 ;;; objects->markup ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

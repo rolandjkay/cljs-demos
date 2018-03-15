@@ -240,8 +240,6 @@
   "Display the objects as a simplified markup"
   []
   (let [objects (re-frame/subscribe [:subs/objects])]
-    (println (ml/objects->markup @objects))
-    [:div ;{:style {:background-color "black"
-          ;         :font-family "'Source Code Pro', monospace";}}
+    [:div 
       (highlight/highlight
         (ml/objects->markup @objects))]))

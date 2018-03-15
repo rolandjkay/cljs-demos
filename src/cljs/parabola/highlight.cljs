@@ -7,13 +7,19 @@
 (defn- repeat-str [n s]
   (apply str (repeat n s)))
 
+(defn- handle-value [v]
+  (cond
+    (vector? v) (clojure.string/join "," v)
+    (number? v) (.toFixed v)
+    :else v))
+
 (defn- handle-attrib [i [k v]]
   (list
     [:span.hl-attrib {:key (str i "-key")}
       (name k)]
     "="
     [:span.hl-string {:key (str i "-value")}
-      (str "\"" v "\"")]
+      (str "\"" (handle-value v) "\"")]
     " "))
 
 (defn- handle-element [depth i [tag attribs & rest]]
@@ -49,7 +55,7 @@
   </code></pre>
   "
   [in]
-  (println "in-->" in)
+
   [:pre
     [:code.hl.xml
       (handle-element 0 0 in)]])
