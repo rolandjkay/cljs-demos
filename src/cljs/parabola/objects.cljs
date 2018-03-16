@@ -424,7 +424,6 @@
   [circle transform]
 ;  {:pre [(valid? ::d/circle circle)] <-- these are ignored by defmethod
 ;   :post [(valid? ::d/circle circle)]]
-
   (update circle ::d/position transform))
 
 
@@ -511,7 +510,7 @@
 
 ;;; object-with-node-removed [CIRCLE] ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defmethod moved-object :circle
+(defmethod object-with-node-removed :circle
   [circle node-id-path]
 ;  {:pre [(valid? ::d/circle circle)] <-- these are ignored by defmethod
 ;   :post [(valid? ::d/circle circle)]]
