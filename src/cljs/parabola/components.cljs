@@ -15,7 +15,8 @@
             [parabola.log :as log]
             [parabola.subs :as subs]
             [parabola.ml :as ml]
-            [parabola.highlight :as highlight]))
+            [parabola.highlight :as highlight]
+            [parabola.assets :as assets]))
 
 (defn- install-handlers
   "Installs interactsj handler
@@ -169,45 +170,98 @@
   []
   (let [selected-tool (re-frame/subscribe [:subs/selected-tool]),
         tool-button
-        (fn [kw label]
-          [:button {:type "button"
-                    :class (if (= @selected-tool kw) "active btn-primary" "btn-primary")
-                    :on-click #(re-frame.core/dispatch [:cmds/select-tool kw])}
+        ;(fn [kw label]
+        ;  [:button {:type "button"
+        ;            :class (if (= @selected-tool kw) "active btn-primary" "btn-primary")
+        ;            :on-click #(re-frame.core/dispatch [:cmds/select-tool kw])
+        ;    label]
+        (fn [kw label icon]
+          [:button.btn.btn-secondary
+            {:type "button"
+             :class (if (= @selected-tool kw) "active")
+             :on-click #(re-frame.core/dispatch [:cmds/select-tool kw])}
+            icon
+            [:br]
             label])]
 
-    [:div#toolbar.btn-group-vertical.btn-group-lg
-      [:div#nodes
-       [:p "Nodes"]
-       (tool-button :tools/node-move "Move")
-       (tool-button :tools/node-delete "Delete")
-       (tool-button :tools/node-add "Add")
-       (tool-button :tools/node-select "Select")]
+;;     <div class="btn-toolbar mb-3" role="toolbar" aria-label="Toolbar with button groups">
+;;      <div class="btn-group-vertical mr-2" role="group" aria-label="First group">
+;;        <button type="button" class="btn btn-secondary"><i class="fas fa-eraser fa-3x"></i></button>
+;;        <button type="button" class="btn btn-secondary"><i class="fas fa-arrows-alt fa-3x"></i></button>
+;;        <button type="button" class="btn btn-secondary"><i class="fas fa-mouse-pointer fa-3x"></i></button>
+;;        <button type="button" class="btn btn-secondary"><i class="far fa-circle fa-3x"></i></button>
+;;        <button type="button" class="btn btn-secondary"><i class="fas fa-pencil-alt fa-3x"></i></button>
+;;        <button type="button" class="btn btn-secondary"><i class="far fa-square fa-3x"></i></button>
+;;        <button type="button" class="btn btn-secondary"><i class="fas fa-circle fa-sm"></i></button>]
+;;      </div>
+;;    </div>
+    [:div.btn-toolar.mb-3 {:role "toolbar" :aria-label "Tool box"}
 
-      [:div#objects
-       [:p "Objects"]
-       (tool-button :tools/object-move "Move")
-       (tool-button :tools/object-delete "Delete")
-       (tool-button :tools/make-circle "Circle")
-       (tool-button :tools/make-path "Path")]]))
+      [:div.btn-group-vertical.mr-2 {:role "group" :aria-label "Node tools"}
+        [:a {:href "#" :role "button" :class "btn btn-success btn-xs"
+             :id "label-btn" :aria-disabled "true"
+             :style {:pointer-events "none"}}
+          "Nodes"]
+
+        (tool-button :tools/node-move "Move" [:i.fas.fa-arrows-alt.fa-1x])
+        (tool-button :tools/node-delete "Delete" [:i.fas.fa-eraser.fa-1x])
+        (tool-button :tools/node-add "Add" [:i.fas.fa-mouse-pointer.fa-1x])
+        (tool-button :tools/node-select "Select" [:i.fas.fa-mouse-pointer.fa-1x])]
+
+      [:div.btn-group-vertical.mr-2 {:role "group" :aria-label "Object tools"}
+        [:a {:href "#" :role "button" :class "btn btn-success btn-xs"
+             :id "label-btn" :aria-disabled "true"
+             :style {:pointer-events "none"}}
+          "Objects"]
+
+        (tool-button :tools/object-move "Move" [:i.fas.fa-arrows-alt.fa-1x])
+        (tool-button :tools/object-delete "Delete" [:i.fas.fa-eraser.fa-1x])
+        (tool-button :tools/make-circle "Circle" [:i.fas.fa-circle.fa-1x])
+        (tool-button :tools/make-path "Path" [:i.fas.fa-pencil-alt.fa-1x])]]))
+
+;    [:div#toolbar.btn-group-vertical.btn-group-lg
+;      [:div#nodes
+;       [:p "Nodes"]
+;       (tool-button :tools/node-move "Move")
+;       (tool-button :tools/node-delete "Delete")
+;       (tool-button :tools/node-add "Add")
+;       (tool-button :tools/node-select "Select")
+;
+;      [:div#objects
+;       [:p "Objects"]
+;       (tool-button :tools/object-move "Move")
+;       (tool-button :tools/object-delete "Delete")
+;       (tool-button :tools/make-circle "Circle")
+;       (tool-button :tools/make-path "Path")]))
+
 
 (defn properties-bar
   "A properties toolbar for changing anchor types"
   []
   (let [vertex-selected? (re-frame/subscribe [:subs/node-selected?]),
         tool-button
-        (fn [kw label]
-          [:button {:type "button"
-                    :class (if @vertex-selected? "btn-primary" "disabled btn-primary")
-                    :on-click #(re-frame.core/dispatch [:cmds/set-vertex-type kw])}
+        (fn [kw label icon]
+          [:button.btn.btn-secondary
+              {:type "button"
+               :class (if @vertex-selected? "" "disabled")
+               :on-click #(re-frame.core/dispatch [:cmds/set-vertex-type kw])}
+            icon
+            [:br]
             label])]
 
-    [:div#toolbar.btn-group-vertical.btn-group-lg
-      (tool-button :no-handles "Corner")
-      (tool-button :handle-before "Curve before")
-      (tool-button :handle-after "Curve after")
-      (tool-button :semi-symmetric "Smooth")
-      (tool-button :symmetric "Smooth symmetric")
-      (tool-button :asymmetric "Asymmetric")]))
+    [:div.btn-toolar.mb-3 {:role "toolbar" :aria-label "Node properties"}
+      [:div.btn-group-vertical.mr-2 {:role "group" :aria-label "Node types"}
+        [:a {:href "#" :role "button" :class "btn btn-success btn-xs"
+             :id "label-btn" :aria-disabled "true"
+             :style {:pointer-events "none"}}
+          "Node Types"]
+
+        (tool-button :no-handles "Corner"  (assets/node-no-handles))
+        (tool-button :handle-before "Before" (assets/node-handle-before))
+        (tool-button :handle-after "After" (assets/node-handle-after))
+        (tool-button :semi-symmetric "Smooth" (assets/node-semi-symmetric))
+        (tool-button :symmetric "Symmetric" (assets/node-symmetric))
+        (tool-button :asymmetric "Asymmetric" (assets/node-asymmetric))]]))
 
 ;;
 ;; Display objects as XML
@@ -240,6 +294,6 @@
   "Display the objects as a simplified markup"
   []
   (let [objects (re-frame/subscribe [:subs/objects])]
-    [:div 
+    [:div
       (highlight/highlight
         (ml/objects->markup @objects))]))
