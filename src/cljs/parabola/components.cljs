@@ -111,18 +111,19 @@
 
 ;; An SVG-canvas control which dispatches re-frame events.
 ;;
-(defn svg-canvas
+(defn- svg-canvas-impl
   "An SVG-canvas control which dispatches re-frame events and visualizes the
    objects in the application state.
   "
-  [{:keys [props] :or {props {}}}]
+  [props]
   (let [foo (atom 0)]
     (make-draggable
       ;; Renderer
       (fn []
         [:svg#canvas
-              {:width (get props :width "800"),
-               :height (get props :height "800"),}
+              {:width (get props :width "100%"),
+               :height (get props :height "100%"),
+               :preserveAspectRatio "none"}
           (map obj/object->svg @(re-frame/subscribe [:subs/objects]))])
 
       ;; event to object-id function
@@ -164,6 +165,10 @@
                 (valid? (s/nilable ::d/id-path) obj-id)]}
          (re-frame/dispatch [:canvas/double-click position obj-id]))})))
 
+;; Wrapper around svg-canvas-impl that provides default empty props
+(defn svg-canvas
+  ([] (svg-canvas-impl {}))
+  ([props] (svg-canvas-impl props)))
 
 (defn toolbar
   "A toolbar component"
@@ -184,18 +189,7 @@
             [:br]
             label])]
 
-;;     <div class="btn-toolbar mb-3" role="toolbar" aria-label="Toolbar with button groups">
-;;      <div class="btn-group-vertical mr-2" role="group" aria-label="First group">
-;;        <button type="button" class="btn btn-secondary"><i class="fas fa-eraser fa-3x"></i></button>
-;;        <button type="button" class="btn btn-secondary"><i class="fas fa-arrows-alt fa-3x"></i></button>
-;;        <button type="button" class="btn btn-secondary"><i class="fas fa-mouse-pointer fa-3x"></i></button>
-;;        <button type="button" class="btn btn-secondary"><i class="far fa-circle fa-3x"></i></button>
-;;        <button type="button" class="btn btn-secondary"><i class="fas fa-pencil-alt fa-3x"></i></button>
-;;        <button type="button" class="btn btn-secondary"><i class="far fa-square fa-3x"></i></button>
-;;        <button type="button" class="btn btn-secondary"><i class="fas fa-circle fa-sm"></i></button>]
-;;      </div>
-;;    </div>
-    [:div.btn-toolar.mb-3 {:role "toolbar" :aria-label "Tool box"}
+    [:div.btn-toolar.mb-3.toolbar {:role "toolbar" :aria-label "Tool box"}
 
       [:div.btn-group-vertical.mr-2 {:role "group" :aria-label "Node tools"}
         [:a {:href "#" :role "button" :class "btn btn-success btn-xs"
@@ -245,12 +239,12 @@
               {:type "button"
                :class (if @vertex-selected? "" "disabled")
                :on-click #(re-frame.core/dispatch [:cmds/set-vertex-type kw])}
-            icon
-            [:br]
-            label])]
+            icon])]
+            ;[:br]
+            ;label])]
 
     [:div.btn-toolar.mb-3 {:role "toolbar" :aria-label "Node properties"}
-      [:div.btn-group-vertical.mr-2 {:role "group" :aria-label "Node types"}
+      [:div.btn-group.mr-2 {:role "group" :aria-label "Node types"}
         [:a {:href "#" :role "button" :class "btn btn-success btn-xs"
              :id "label-btn" :aria-disabled "true"
              :style {:pointer-events "none"}}
@@ -294,6 +288,6 @@
   "Display the objects as a simplified markup"
   []
   (let [objects (re-frame/subscribe [:subs/objects])]
-    [:div
+    [:div.markup-display
       (highlight/highlight
         (ml/objects->markup @objects))]))

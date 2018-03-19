@@ -7,6 +7,11 @@
             [parabola.domain :as domain]))
 
 
+(defn- round-position
+  [position]
+  {:pre [(utils/valid? ::domain/position position)]}
+  (mapv js/Math.round position))
+
 ;;; object->markup ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -29,7 +34,7 @@
         after-length (::domain/after-length vertex)
         angle (::domain/angle vertex)
         length (::domain/length vertex)
-        position (::domain/position vertex)
+        position (round-position (::domain/position vertex))
         vertex-type (::domain/vertex-type vertex)]
 
     [:vertex
@@ -55,7 +60,7 @@
 
 (defmethod object->markup :circle [circle]
   [:circle
-    {:position (::domain/position circle)
+    {:position (round-position (::domain/position circle))
      :radius (radial->radius (::domain/radial circle))}])
 
 ;;; objects->markup ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -1,0 +1,32 @@
+div.ui {
+  display: grid;
+  height: 100vh;
+  width: 100vw;
+}
+
+div.ui div.svg-canvas {
+  grid-column: 20 / 25;
+  grid-row: 2 / 2;
+  overflow: scroll;
+}
+
+div.ui div.toolbar {
+  grid-column: 10 / 19;
+  grid-row: 2 / 2;
+  display: grid;
+  grid-row-gap: 10px;
+}
+
+div.ui div.properties-bar {
+  grid-column: 20 / 25;
+  grid-row: 1 / 1;
+}
+
+div.ui div.markup-display {
+  grid-column: 25 / 39;
+  grid-row: 1 / span 2;
+  overflow: scroll;
+}
+
+div.ui div.markup-display pre { height: 100% }
+div.ui div.markup-display pre code { height: 100%;  width: 800pt}

@@ -11,11 +11,13 @@
 
 
 (defn home-panel []
-  [:div
+  [:div.ui
     [toolbar]
-    [properties-bar]
-    [markup-display]
-    [svg-canvas]]) ;{:width 600 :height 600}]])
+    [:div.svg-canvas
+      [svg-canvas {:width 1027 :height 768}]]
+    [:div.properties-bar
+      [properties-bar]]
+    [markup-display]])
 
 ;; about
 
