@@ -18,6 +18,46 @@
             [parabola.highlight :as highlight]
             [parabola.assets :as assets]))
 
+(defn- dom-element? 
+  "Returns true if it is a DOM element"
+  [obj]
+
+  (or
+    (instance? js/HTMLElement obj)
+    (instance? js/SVGElement obj)))
+
+(defn- element->ancestors
+  "Return a lazy sequence of the element and all it's ancestors"
+  [element] {:pre [(valid? dom-element? element)]}
+
+  (println element (dom-element? element))
+  (lazy-seq
+    (if (nil? (.-parentElement element))
+        nil
+        (cons
+          element
+          (element->ancestors (.-parentElement element))))))
+
+(defn- element->scroll-position [element]
+  "Get the scrollLeft and scrollTop properties of 'element' as a vector"
+  [(.-scrollLeft element) (.-scrollTop element)])
+
+
+(defn- event->scroll-position [e]
+  "Calculate the scroll position of the element on which the 'e' occurred.
+
+  This sums the scroll positions of all ancestor nodes. This is because if the
+  canvas is in a [:div] and the [:div] is scrolled, then we must include the
+  [:div]'s scroll position.
+  "
+  (reduce pos-add (map element->scroll-position (element->ancestors (.-target e)))))
+
+(defn- event->client-position [e]
+  [(.-clientX e) (.-clientY e)])
+
+(defn- event->page-position [e]
+  [(.-pageX e) (.-pageY e)])
+
 (defn- install-handlers
   "Installs interactsj handler
 
@@ -50,7 +90,12 @@
               canvas-double-click (fn [position] (log/info "Missing canvas-double-click handler")),
               canvas-move (fn [position] (log/info "Missing canvas-move handler"))}}
         event-handlers,
-        event->position (fn [e] (let [x (pos-diff [(.-clientX e) (.-clientY e)] @top-left)] x))]
+        event->position (fn [e] ;(println [(.-clientX e) (.-clientY e)] (-> e .-target .-parentElement .-parentElement .-scrollLeft))
+                                ;(let [x (pos-diff [(.-clientX e) (.-clientY e)] @top-left)] x)])]
+                            (let ;[scrollPosition [(-> e .-target .-parentElement .-parentElement .-scrollLeft)
+                                ;                  (-> e .-target .-parentElement .-parentElement .-scrollTop)
+                                [scrollPosition (event->scroll-position e)]
+                              (-> e event->page-position (pos-diff @top-left) (pos-add scrollPosition))))]
 
     (reagent/create-class
       {:component-did-mount
@@ -77,7 +122,8 @@
                                      1 (canvas-click position target-id)
                                      (canvas-double-click position target-id))
                                    (reset! click-count 0))))
-                   :on-mouse-move #(-> % event->position canvas-move)}
+                   :on-mouse-move #(-> % event->position canvas-move)
+                   :on-scroll #(println "hello")}
               [wrapped-component]]))})))
 
 ;; A component which, given one or more objects, allow the user to edit them.
