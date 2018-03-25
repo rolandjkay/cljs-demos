@@ -2,12 +2,20 @@ div.ui {
   display: grid;
   height: 100vh;
   width: 100vw;
+  background: #eef2ee
 }
 
 div.ui div.svg-canvas {
   grid-column: 20 / 25;
   grid-row: 2 / 2;
   overflow: scroll;
+  border-width: 1pt;
+
+  background: white;
+  border-radius: 5pt;
+  border-color: #bbb;
+  border-width: 1pt;
+  border-style: solid;
 }
 
 div.ui div.toolbar {
