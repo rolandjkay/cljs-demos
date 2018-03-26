@@ -18,7 +18,7 @@
             [parabola.highlight :as highlight]
             [parabola.assets :as assets]))
 
-(defn- dom-element? 
+(defn- dom-element?
   "Returns true if it is a DOM element"
   [obj]
 
@@ -30,7 +30,6 @@
   "Return a lazy sequence of the element and all it's ancestors"
   [element] {:pre [(valid? dom-element? element)]}
 
-  (println element (dom-element? element))
   (lazy-seq
     (if (nil? (.-parentElement element))
         nil
@@ -90,12 +89,11 @@
               canvas-double-click (fn [position] (log/info "Missing canvas-double-click handler")),
               canvas-move (fn [position] (log/info "Missing canvas-move handler"))}}
         event-handlers,
-        event->position (fn [e] ;(println [(.-clientX e) (.-clientY e)] (-> e .-target .-parentElement .-parentElement .-scrollLeft))
-                                ;(let [x (pos-diff [(.-clientX e) (.-clientY e)] @top-left)] x)])]
-                            (let ;[scrollPosition [(-> e .-target .-parentElement .-parentElement .-scrollLeft)
-                                ;                  (-> e .-target .-parentElement .-parentElement .-scrollTop)
-                                [scrollPosition (event->scroll-position e)]
-                              (-> e event->page-position (pos-diff @top-left) (pos-add scrollPosition))))]
+        event->position (fn [e]
+                         (-> e
+                             event->page-position
+                             (pos-diff @top-left)
+                             (pos-add (event->scroll-position e))))]
 
     (reagent/create-class
       {:component-did-mount
@@ -122,8 +120,7 @@
                                      1 (canvas-click position target-id)
                                      (canvas-double-click position target-id))
                                    (reset! click-count 0))))
-                   :on-mouse-move #(-> % event->position canvas-move)
-                   :on-scroll #(println "hello")}
+                   :on-mouse-move #(-> % event->position canvas-move)}
               [wrapped-component]]))})))
 
 ;; A component which, given one or more objects, allow the user to edit them.
