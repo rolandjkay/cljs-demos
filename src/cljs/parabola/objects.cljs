@@ -105,7 +105,7 @@
 
   (let [[x y] (::d/position vertex)]
     [:g.drag-me {:key (id->str id-path) :id (id->str id-path)}
-      [:polygon {:fill  (if selected "green" "black")
+      [:polygon {:fill  (if selected "#4c7cff" "black")
                  :points (str (- x 3) "," y " "
                               x "," (+ y 3) " "
                               (+ x 3) "," y " "
@@ -136,7 +136,7 @@
       ;; The handle
       [:circle {:id handle-id
                 :cx (handle-position 0) :cy (handle-position 1) :r "5"
-                :fill (if selected "green" "black")}]]))
+                :fill (if selected "#4c7cff" "black")}]]))
 
 
 (defn- vertex-handles->svg
