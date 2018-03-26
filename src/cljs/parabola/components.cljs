@@ -120,7 +120,11 @@
                                      1 (canvas-click position target-id)
                                      (canvas-double-click position target-id))
                                    (reset! click-count 0))))
-                   :on-mouse-move #(-> % event->position canvas-move)}
+                   :on-mouse-move (fn [e]
+                                    (canvas-move
+                                      (event->position e)
+                                      (event->obj-id e)))}
+
               [wrapped-component]]))})))
 
 ;; A component which, given one or more objects, allow the user to edit them.
@@ -172,13 +176,15 @@
       ;; event to object-id function
       ;; - This depends on our object model; so, it's not generic and can't
       ;;   be in make-draggable
+      ;; XXX EXAMPLE FOR CONF; RETURN ELEMENT RATHER THAN ID (GET RID OF THE MAP)
       (fn canvas-event->obj-id [event]
-        (first ; Take first...
-          (drop-while ; ...element which has a valid ID
-            #(not (s/valid? ::d/dom-id (.-id %)))
-            (take-while
-              #(not= (.-id %) "canvas") ; <- give up when we get to the canvas.
-              (element->ancestors (.-target event))))))
+        (str->id
+          (first ; Take first...
+            (drop-while ; ...element which has a valid ID
+              #(not (s/valid? ::d/dom-id %))
+              (take-while
+                #(not= % "canvas") ; <- give up when we get to the canvas.
+                (map #(.-id %) (element->ancestors (.-target event))))))))
 
       ;; Event handlers
       {
@@ -188,10 +194,12 @@
          {:pre [(valid? ::d/dom-id target-id) (valid? ::d/position move-vec)]}
          (re-frame/dispatch [:canvas/drag move-vec (str->id target-id)]))
 
-       ;; move handler
        :canvas-move
-       (cljs.core/fn [position] {:pre [(valid? ::d/position position)]}
-         (re-frame/dispatch [:canvas/move position]))
+       (cljs.core/fn
+         [position target-id]
+         {:pre [(valid? ::d/position position)
+                (valid? (s/nilable ::d/id-path) target-id)]}
+         (re-frame/dispatch [:canvas/move position target-id]))
 
        ;; tap handler
        :canvas-click
