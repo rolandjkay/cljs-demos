@@ -173,13 +173,12 @@
       ;; - This depends on our object model; so, it's not generic and can't
       ;;   be in make-draggable
       (fn canvas-event->obj-id [event]
-        (loop [e (.-target event)]
-          (let [id (.-id e)]
-            (cond
-              (= id "canvas")            nil ,   ; <- give up when we get to the canvas.
-              (s/valid? ::d/dom-id id)   (str->id id),
-              (nil? (.-parentElement e)) nil ,   ; <- or if we get to the DOM root!
-              :else                      (recur (.-parentElement e))))))
+        (first ; Take first...
+          (drop-while ; ...element which has a valid ID
+            #(not (s/valid? ::d/dom-id (.-id %)))
+            (take-while
+              #(not= (.-id %) "canvas") ; <- give up when we get to the canvas.
+              (element->ancestors (.-target event))))))
 
       ;; Event handlers
       {
