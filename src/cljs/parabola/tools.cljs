@@ -35,7 +35,7 @@
   (on-unselected [this db] "The tool was unselected")
   (on-click [this db position id-path] "The canvas was clicked")
   (on-double-click [this db position obj-id] "The canvas was double clicked")
-  (on-move [this db position] "The mouse moved over the canvas")
+  (on-move [this db position id-path] "The mouse moved over the canvas")
   (on-drag [this db dpos id-path] "An object was dragged"))
 
 
@@ -58,7 +58,7 @@
           (update ::d/next-object-id inc))))
 
     (on-double-click [this db position id-path] db)
-    (on-move [this db position] db)
+    (on-move [this db position id-path] db)
     (on-drag [this db dpos obj-id] db))
 
 
@@ -124,7 +124,7 @@
 
     ;; If we have a stub-path in progress then moving the mouse should move the
     ;; last point.
-    (on-move [this db position]
+    (on-move [this db position id-path]
       (let [id-path (get-in db [:db/tool-state ::d/id])]
         (if (nil? id-path) db  ; Do nothing))))
             ;; Move the last point
@@ -148,7 +148,7 @@
       (if-not obj-id db (update db ::d/objects dissoc obj-id)))
 
     (on-double-click [this db position id-path] db)
-    (on-move [this db position] db)
+    (on-move [this db position id-path] db)
     (on-drag [this db dpos obj-id] db))
 
 
@@ -169,7 +169,7 @@
     (on-click [this db position id-path] db)
 
     (on-double-click [this db position id-path] db)
-    (on-move [this db position] db)
+    (on-move [this db position id-path] db)
 
     (on-drag [this db dpos id-path]
       (update-in
@@ -193,7 +193,7 @@
     (on-click [this db position obj-id] db)
 
     (on-double-click [this db position id-path] db)
-    (on-move [this db position] db)
+    (on-move [this db position id-path] db)
 
     (on-drag [this db dpos id-path]
       (let [[obj-index & rest] id-path]
@@ -225,7 +225,7 @@
             objects/object-with-node-removed (rest id-path))))
 
     (on-double-click [this db position id-path] db)
-    (on-move [this db position] db)
+    (on-move [this db position id-path] db)
 
     (on-drag [this db dpos obj-id] db))
 
@@ -250,7 +250,7 @@
             objects/object-with-node-added position)))
 
     (on-double-click [this db position id-path] db)
-    (on-move [this db position] db)
+    (on-move [this db position id-path] db)
 
     (on-drag [this db dpos obj-id] db))
 
@@ -288,7 +288,21 @@
           (select-node id-path))))
 
     (on-double-click [this db position id-path] db)
-    (on-move [this db position] db)
+
+    (on-move [this db position id-path]
+      (if (= (count id-path) 2)
+        ;; Enlarge any anchor under the pointer.
+        (update-in
+          db
+          [::d/objects (first id-path)]
+          objects/object-with-large-anchors [(second id-path)])
+        ;; Remove any large anchors.
+        (update-in
+          db
+          [::d/objects]
+          map-function-on-map-vals
+          #(dissoc % ::d/large-anchors))))
+
     (on-drag [this db dpos obj-id] db))
 
 ;;

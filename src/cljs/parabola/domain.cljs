@@ -58,20 +58,22 @@
 (s/def ::handle-selector (s/tuple int? #{:before :after}))
 (s/def ::selected-handles (s/coll-of ::handle-selector :kind vector?))
 (s/def ::selected-anchors (s/coll-of int? :kind vector?))
+(s/def ::large-anchors (s/coll-of int? :kind vector?))
 
 ;(s/def ::path (s/cat :obj-type #{:path}
 ;                     :id int?
 ;                     :corners (s/coll-of ::corner :kind vector?)))
 (s/def ::path (s/keys :req [::object-type ::id ::vertices]
                       :opt [::display-anchors ::display-handles
-                            ::selected-anchors ::selected-handles]))
+                            ::selected-anchors ::selected-handles
+                            ::large-anchors]))
 
 ;;; CIRCLE ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (s/def ::radial ::position)
 (s/def ::circle (s/keys :req [::object-type ::id ::position ::radial]
-                        :opt [::display-anchors ::selected-anchors]))
+                        :opt [::display-anchors ::selected-anchors ::large-anchors]))
 
 ;;; OBJECT ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

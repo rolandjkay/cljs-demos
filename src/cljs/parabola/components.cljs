@@ -177,6 +177,7 @@
       ;; - This depends on our object model; so, it's not generic and can't
       ;;   be in make-draggable
       ;; XXX EXAMPLE FOR CONF; RETURN ELEMENT RATHER THAN ID (GET RID OF THE MAP)
+      ;; See Revision 7a7047e
       (fn canvas-event->obj-id [event]
         (str->id
           (first ; Take first...
@@ -194,6 +195,7 @@
          {:pre [(valid? ::d/dom-id target-id) (valid? ::d/position move-vec)]}
          (re-frame/dispatch [:canvas/drag move-vec (str->id target-id)]))
 
+       ;; move handler
        :canvas-move
        (cljs.core/fn
          [position target-id]

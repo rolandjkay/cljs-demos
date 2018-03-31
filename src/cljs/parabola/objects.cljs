@@ -98,19 +98,20 @@
 
 (defn- vertex-anchor->svg
   "Render an anchor"
-  [vertex id-path selected]
+  [vertex id-path selected large?]
   {:pre [(valid? ::d/vertex vertex)
          (valid? ::d/id-path id-path)
          (valid? boolean? selected)]}
 
-  (let [[x y] (::d/position vertex)]
+  (let [[x y] (::d/position vertex)
+        radius (if large? 6 3)]
     [:g.drag-me {:key (id->str id-path) :id (id->str id-path)}
       [:polygon {:fill  (if selected "#4c7cff" "black")
-                 :points (str (- x 3) "," y " "
-                              x "," (+ y 3) " "
-                              (+ x 3) "," y " "
-                              x "," (- y 3) " "
-                              (- x 3) "," y)}]]))
+                 :points (str (- x radius) "," y " "
+                              x "," (+ y radius) " "
+                              (+ x radius) "," y " "
+                              x "," (- y radius) " "
+                              (- x radius) "," y)}]]))
 
 (defn- handle->svg
   "Render a single handle"
@@ -248,7 +249,8 @@
         (if (node-selected? i (::d/display-anchors path))
             (vertex-anchor->svg vertex
                                 [(::d/id path) i]
-                                (node-selected? i (::d/selected-anchors path)))))
+                                (node-selected? i (::d/selected-anchors path))
+                                (node-selected? i (::d/large-anchors path)))))
       (::d/vertices path))
 
     ; Same for handles
@@ -276,13 +278,15 @@
         (vertex-anchor->svg
           {::d/vertex-type :no-handles ::d/position centre}
           [id 0]
-          (node-selected? 0 (::d/selected-anchors circle))))
+          (node-selected? 0 (::d/selected-anchors circle))
+          (node-selected? 0 (::d/large-anchors circle))))
 
       (if (node-selected? 1 (::d/display-anchors circle))
         (vertex-anchor->svg
           {::d/vertex-type :no-handles ::d/position (pos-add centre radial)}
           [id 1]
-          (node-selected? 1 (::d/selected-anchors circle))))]))
+          (node-selected? 1 (::d/selected-anchors circle))
+          (node-selected? 1 (::d/large-anchors circle))))]))
 
 ;;; object-with-node-moved ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -710,3 +714,29 @@
 
 (defmethod object-with-selected-vertex-type-set :circle
   [circle vertex-type] circle)  ; NOOP
+
+
+;;; object-with-large-anchors ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Multi-methods that know how to transform anchors in response to hover events
+
+(defmulti
+  object-with-large-anchors
+  ; Dispatch function
+  (fn
+    [obj]
+    {:pre [(valid? ::d/object obj)]}
+    (::d/object-type obj)))
+
+;; object-with-node-selected [PATH]) ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defmethod object-with-large-anchors :path
+  [path large-anchors]
+  (assoc path ::d/large-anchors large-anchors))
+
+;; object-with-node-selected [CIRCLE]) ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defmethod object-with-large-anchors :circle
+  [circle large-anchors]
+  ;; XXX Set this to update instead of assoc clojure.spec will catch the error.
+  (assoc circle ::d/large-anchors large-anchors))
