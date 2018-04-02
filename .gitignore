@@ -6,3 +6,7 @@ out
 .lein-failures
 .lein-repl-history
 .nrepl-port
+.DS_Store
+resources/.DS_Store
+resources/public/.DS_Store
+resources/public/js/.DS_Store
