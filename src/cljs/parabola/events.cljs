@@ -30,7 +30,6 @@
     (cljs.core/fn [db [_ new-tool-kw]]  {:pre [(valid? ::d/db db)], :post [(valid? ::d/db %)]}
       (let [current-tool  (-> db ::d/selected-tool tools/tools-map)
             new-tool (new-tool-kw tools/tools-map)]
-        (println new-tool-kw tools/tools-map)
         (->> db
           (tools/on-unselected current-tool)
           (tools/on-selected new-tool)

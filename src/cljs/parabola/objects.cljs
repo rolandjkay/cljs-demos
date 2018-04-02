@@ -482,7 +482,6 @@
          before-length ::d/before-length
          after-length ::d/after-length
          vertex-type ::d/vertex-type} vertex]
-    (println [handle-id vertex-type])
     (case [handle-id vertex-type]
       [0 :no-handles]     vertex
       [0 :handle-before]  {::d/vertex-type :no-handles ::d/position position}
@@ -591,8 +590,6 @@
   [path position]
 ;  {:pre [(valid? ::d/path path)]  <-- these are ignored by defmethod]
 ;   :post [(valid? ::d/path path)]]
-
-  (println "object-with-node-added"  position)
 
   (let [vertex-index (position->segment-index path position)]
     (update path ::d/vertices
