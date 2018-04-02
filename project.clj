@@ -67,7 +67,7 @@
      :source-paths ["src/cljs" "src/cljc"]
      :compiler     {:main            parabola.core
                     :output-to       "resources/public/js/compiled/app.js"
-                    :optimizations   :advanced
+                    :optimizations   :simple ; :advanced breaks interactjs.
                     :closure-defines {goog.DEBUG false}
                     :pretty-print    false}}
 

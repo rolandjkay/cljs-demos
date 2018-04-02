@@ -192,7 +192,15 @@
        ;; Drag handler
        :dragmove
        (cljs.core/fn [target-id move-vec]
+         ; XXX  Without the :pre we get a gibberish error like below later on
+         ; when move-vec is [undef undef] (which it is for some unknown reason in release)
+         ; The problem is the interactjs is missing .-dx .-dy properties on the on-drag event.
+         ; This is caused by advanced optimizations; setting "optimizations: :simple" works
+         ; around the problem
+         ; [Error] Error: Problem parsing d="M25.0,50.0 C25.0,150.0 NaN,NaN 75.0,100.0 CNaN,NaN 198.5,103.0 150.0,75.0"
+         ; [Error] Error: Problem parsing d="M75.0,100.0 LNaN,NaN"
          {:pre [(valid? ::d/dom-id target-id) (valid? ::d/position move-vec)]}
+         (js/console.log "BBBB" (vector? move-vec) (count move-vec) (first move-vec) (second move-vec))
          (re-frame/dispatch [:canvas/drag move-vec (str->id target-id)]))
 
        ;; move handler
